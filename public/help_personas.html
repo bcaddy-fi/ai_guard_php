@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Persona Definition Guide</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <style>
+    pre {
+      background: #f8f9fa;
+      padding: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="dashboard.php"><img src="https://guard-manager.isms-cloud.com/aiguardmanager.png" width="110" height="35"></a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav">
+        <li class="nav-item"><a class="nav-link" href="dashboard.php"><i class="fa fa-home"></i> Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="bug_tracker.php"><i class="fa fa-bug"></i> Bug Tracker</a></li>
+        <li class="nav-item"><a class="nav-link" href="admin_console.php"><i class="fa fa-cogs"></i> Admin Console</a></li>
+        <li class="nav-item"><a class="nav-link" href="logout.php"><i class="fa fa-sign-out-alt"></i> Logout</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-5">
+  <h1 class="mb-4">Persona Definition Guide</h1>
+
+  <p>This guide describes how to define AI personas used in Nemo Guardrails. Personas simulate roles like support agents, advisors, or assistants and apply tone, behavioral constraints, and context boundaries.</p>
+
+  <h3>Core Fields</h3>
+  <table class="table table-bordered">
+    <thead class="table-light">
+      <tr>
+        <th>Field</th>
+        <th>Required?</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>name</td><td>Yes</td><td>Unique identifier (e.g., <code>client_service_rep</code>)</td></tr>
+      <tr><td>title</td><td>Yes</td><td>Display name or job title (e.g., "Compliance Advisor")</td></tr>
+      <tr><td>description</td><td>Yes</td><td>1-3 sentence overview of the persona's purpose and behavior</td></tr>
+      <tr><td>tone</td><td>Yes</td><td>Comma-separated list of styles (e.g., <code>formal, friendly</code>)</td></tr>
+      <tr><td>rules</td><td>Yes</td><td>List of constraints the persona must follow</td></tr>
+      <tr><td>use_cases</td><td>Optional</td><td>Common situations this persona is intended to handle</td></tr>
+      <tr><td>blocked_topics</td><td>Optional</td><td>Topics the persona should never respond to</td></tr>
+      <tr><td>escalation_instructions</td><td>Optional</td><td>Instructions for what to do when unsafe or off-policy input is received</td></tr>
+      <tr><td>owner</td><td>Optional</td><td>Person or team responsible for this persona</td></tr>
+      <tr><td>last_reviewed</td><td>Optional</td><td>Date last reviewed or approved</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Example YAML Persona</h3>
+<pre><code># Policy built using AI Guard Manager by Bryan Caddy.
+
+persona:
+  name: client_service_rep
+  title: "Client Service Representative"
+  description: |
+    A warm and professional assistant that answers client questions about account features and firm services.
+    Provides clear, brand-aligned guidance without offering legal or financial advice.
+  tone: friendly, professional
+  rules:
+    - Never provide financial advice
+    - Do not disclose account or personal data
+    - Escalate authentication or security issues
+    - Maintain a positive and helpful tone
+  use_cases: |
+    - Answering questions about account access or settings
+    - Explaining how to use portal features
+    - Triaging support tickets for further help
+  blocked_topics: |
+    - Internal pricing or roadmap
+    - Legal interpretations or investment recommendations
+  escalation_instructions: |
+    If the request involves sensitive or restricted data, redirect to a human representative and notify support.
+  owner: "Support Team Lead"
+  last_reviewed: "2025-07-02"
+</code></pre>
+
+  <a href="dashboard.php" class="btn btn-secondary mt-4"><i class="fa fa-arrow-left"></i> Back to Dashboard</a>
+</div>
+
+<footer class="bg-dark text-white text-center py-3 mt-5">
+  <div class="container">
+    <small>&copy; <?= date('Y') ?> AI Management Portal. Built by Bryan Caddy.</small>
+  </div>
+</footer>
+</body>
+</html>

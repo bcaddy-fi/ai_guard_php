@@ -1,0 +1,49 @@
+# version: 1.0.0
+model: qwen/qwen3-8b
+base:
+  - key: lmstudio-community/qwen3-8b-gguf
+    sources:
+      - type: huggingface
+        user: lmstudio-community
+        repo: Qwen-3-8B-GGUF
+metadataOverrides:
+  domain: llm
+  architectures:
+    - llama
+  compatibilityTypes:
+    - gguf
+    - safetensors
+  paramsStrings:
+    - 1B
+  minMemoryUsageBytes: 1000000000
+  contextLengths:
+    - 131072
+  trainedForToolUse: mixed
+  vision: false
+config:
+  operation:
+    fields:
+      - key: llm.prediction.topKSampling
+        value: 20
+      - key: llm.prediction.minPSampling
+        value:
+          checked: true
+          value: 0
+customFields:
+  - key: enableThinking
+    displayName: Enable Thinking
+    description: Enable the model to think before answering.
+    type: boolean
+    defaultValue: true
+    effects:
+      - type: setJinjaVariable
+        variable: enable_thinking
+suggestions:
+  - message: The following parameters are recommended for thinking mode
+    conditions:
+      - type: equals
+        key: $.enableThinking
+        value: true
+    fields:
+      - key: llm.prediction.temperature
+        value: 0.6

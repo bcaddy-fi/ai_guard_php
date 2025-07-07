@@ -1,0 +1,107 @@
+# version: 1.0.2
+
+policies:
+
+  - name: detect-policy-bypass-attempts
+    description: |
+      Detects prompts that try to disable, bypass, or override security controls or validation.
+    conditions:
+      - type: semantic_criteria
+        criteria:
+          - "user is trying to disable a system policy or validation check"
+      - type: regex
+        pattern: (?i)\b(disable|bypass|turn off|remove|override|skip)\b.*\b(policy|check|guardrail|validation|rule|security)\b
+    actions:
+      - type: block
+        message: "Attempt to bypass policy detected."
+      - action: log-to-siem
+
+  - name: detect-sensitive-data-exposure
+    description: |
+      Detects prompts or responses that may contain sensitive PII or credentials.
+    conditions:
+      - type: regex
+        pattern: \b(?:\d[ -]*?){13,16}\b  # Credit card-like numbers
+      - type: regex
+        pattern: (?i)\b(?:password|secret|token)\b\s*[:=]\s*['\"].{6,}['\"]
+    actions:
+      - type: block
+        message: "Sensitive information detected and blocked."
+      - action: log-to-siem
+
+  - name: prevent-prompt-injection
+    description: |
+      Blocks common prompt injection tactics like jailbreaks or instruction overrides.
+    conditions:
+      - type: regex
+        pattern: (?i)(ignore\s+previous\s+instructions|pretend\s+to\s+be|you\s+are\s+now\s+not\s+an\s+AI)
+    actions:
+      - type: block
+        message: "Prompt injection attempt blocked."
+      - action: log-to-siem
+
+  - name: detect-hate-or-abuse
+    description: |
+      Detects hateful, abusive, or violent user inputs.
+    conditions:
+      - type: semantic_criteria
+        criteria:
+          - "user is using hateful or abusive language"
+    actions:
+      - type: block
+        message: "Abusive input detected and blocked."
+      - action: log-to-siem
+
+  - name: enforce-safe-financial-language
+    description: |
+      Prevents generation of financial advice or unverified investment predictions.
+    conditions:
+      - type: semantic_criteria
+        criteria:
+          - "user is asking for financial advice"
+          - "output contains investment recommendations"
+    actions:
+      - type: block
+        message: "This system cannot provide investment advice."
+      - action: log-to-siem
+
+  - name: detect-jailbreak-tokens
+    description: |
+      Flags use of suspicious obfuscation tokens used in jailbreaks.
+    conditions:
+      - type: regex
+        pattern: (?!\b)(?<!\w)(\[\[|::|\\x|/prompt|/ignore|--inject|raw/)[^\s]{3,}
+    actions:
+      - type: block
+        message: "Unsafe injection tokens detected."
+      - action: log-to-siem
+
+  - name: detect-phishing-terms
+    description: |
+      Detects inputs related to impersonation or social engineering.
+    conditions:
+      - type: regex
+        pattern: (?i)\b(impersonate|fake id|spoof email|phish|pretend to be)\b
+    actions:
+      - type: block
+        message: "Phishing or impersonation request blocked."
+      - action: log-to-siem
+
+# Shared named action for reuse
+actions:
+  - name: log-to-siem
+    type: notify
+    method: POST
+    url: https://siem.example.com/ingest/guardrails
+    headers:
+      Authorization: "Bearer YOUR_API_TOKEN"
+      Content-Type: "application/json"
+    payload: |
+      {
+        "event_type": "{{ policy.name }}",
+        "timestamp": "{{ timestamp }}",
+        "user_input": "{{ user_input }}",
+        "session_id": "{{ session_id }}",
+        "action": "block",
+        "model": "{{ model.name }}"
+      }

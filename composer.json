@@ -1,0 +1,31 @@
+{
+  "name": "bryan/ai-guard-manager",
+  "description": "Secure AI Persona and Guardrail Management Portal",
+  "type": "project",
+  "require": {
+    "symfony/yaml": "^6.4",
+    "guzzlehttp/guzzle": "^7.8",
+    "vlucas/phpdotenv": "^5.5",
+    "openai-php/client": "^0.6"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\Controllers\\": "app/controllers/"
+    },
+    "files": [
+      "app/controllers/auth.php",
+      "app/controllers/db.php"
+    ]
+  },
+  "scripts": {
+    "post-install-cmd": [
+      "@composer dump-autoload"
+    ]
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "sort-packages": true
+  },
+  "minimum-stability": "stable",
+  "license": "MIT"
+}

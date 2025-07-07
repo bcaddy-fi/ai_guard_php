@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WAF Help - AI Management Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f8f9fa; padding-top: 70px; }
+    .card { border-radius: 1rem; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .navbar-brand { font-weight: bold; }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top shadow">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="dashboard.php">
+      <img src="https://guard-manager.isms-cloud.com/aiguardmanager.png" width="110" height="35">
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNavDropdown">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link" href="dashboard.php"><i class="fa fa-home"></i> Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link active" href="waf_admin.php"><i class="fa fa-shield-halved"></i> WAF Admin</a></li>
+          <li class="nav-item"><a class="nav-link" href="help_waf.html" title="Help"><i class="fa fa-circle-question"></i> WAF Help</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container mt-4">
+  <div class="card p-4">
+    <h2 class="mb-3"><i class="fa fa-shield-halved text-primary"></i> Web Application Firewall (WAF) Help</h2>
+    <p>The WAF feature in the AI Management Portal helps protect your application by filtering malicious requests and blocking potentially harmful access patterns.</p>
+
+    <hr>
+    <h4>WAF Settings Explained</h4>
+    <ul>
+      <li><strong>Enable WAF:</strong> Master switch to turn protection on or off.</li>
+      <li><strong>SQL Injection Protection:</strong> Blocks known SQL injection patterns in user input.</li>
+      <li><strong>XSS Protection:</strong> Blocks attempts to inject malicious scripts via forms or URLs.</li>
+    </ul>
+
+    <hr>
+    <h4>IP and Country Restrictions</h4>
+    <p>You can control access based on IP addresses and geographic location:</p>
+    <ul>
+      <li><strong>IP Mode:</strong> Choose between:
+        <ul>
+          <li><code>Block All Except</code> - Only listed IPs can access.</li>
+          <li><code>Allow All Except</code> - Everyone can access except listed IPs.</li>
+        </ul>
+      </li>
+      <li><strong>Country Mode:</strong> Similar to IP mode, this uses geolocation to block or allow countries.</li>
+      <li><strong>Format:</strong> Use ISO country codes (e.g. <code>US</code>, <code>DE</code>) separated by commas.</li>
+    </ul>
+
+    <hr>
+    <h4>Rate Limiting</h4>
+    <p>Prevent abuse by limiting repeated failed access attempts:</p>
+    <ul>
+      <li><strong>Enabled:</strong> Blocks any IP after 10 denials within 10 minutes.</li>
+      <li><strong>Auto-unblocks:</strong> After 10 minutes with no new blocks.</li>
+    </ul>
+
+    <hr>
+    <h4>JSON-Compatible API Blocking</h4>
+    <p>Enable this if your portal is used by API clients. When triggered:</p>
+    <ul>
+      <li>Requests with <code>Accept: application/json</code> return a structured JSON error.</li>
+      <li>Prevents HTML errors in API responses.</li>
+    </ul>
+
+    <hr>
+    <h4>WAF Denial Log</h4>
+    <p>The <strong>denial log</strong> shows the last 50 blocked attempts. Logged details include:</p>
+    <ul>
+      <li>IP address</li>
+      <li>Country code</li>
+      <li>Reason for block</li>
+      <li>URL path and user-agent</li>
+    </ul>
+
+    <hr>
+    <h4>Best Practices</h4>
+    <ul>
+      <li>Regularly audit your allowed IPs and countries.</li>
+      <li>Monitor the denial log for suspicious patterns.</li>
+      <li>Combine WAF with secure coding and authentication practices.</li>
+    </ul>
+
+    <div class="alert alert-info mt-4">
+      For questions or feedback about WAF, contact your system administrator or open a support ticket via the admin console.
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

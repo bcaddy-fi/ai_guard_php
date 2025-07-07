@@ -1,0 +1,55 @@
+# version: 1.0.3
+guardrail:
+  id: block_investment_advice
+  name: "Block Investment Advice"
+  description: >
+    Prevents the model from providing financial or investment advice of any kind, including discussing securities, strategies, retirement plans, or market insights.
+
+  fallback_response: >
+	I'm not allowed to provide financial or investment advice. Please consult a licensed financial advisor.
+
+  detection:
+    match_type: any
+    keywords:
+      - invest
+      - investment
+      - 401k
+      - ira
+      - roth ira
+      - pension
+      - stock
+      - bond
+      - mutual fund
+      - etf
+      - portfolio
+      - diversify
+      - market trend
+      - capital gain
+      - annuity
+      - hedge fund
+      - return on investment
+      - financial planner
+      - interest rate
+      - yield
+      - retirement
+      - asset allocation
+      - risk tolerance
+      - tax deferred
+      - savings strategy
+      - financial goal
+      - brokerage
+      - day trading
+      - options contract
+      - derivatives
+      - private equity
+
+  enforcement:
+    action: block
+    message: fallback_response
+
+  escalation:
+    policy: >
+      If a user attempts to ask for investment advice, log the attempt and return the fallback message without any model-generated response. If repeated attempts are made, alert an administrator.
+
+  owner: "Information Security Team"
+  last_reviewed: "2025-07-05"

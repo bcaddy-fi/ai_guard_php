@@ -1,0 +1,57 @@
+#Policy built using AI Guard Manager by Bryan Caddy.
+# =======================
+#  Shared Actions Block
+# =======================
+actions:
+  - name: send-to-siem
+    type: notify
+    method: POST
+    url: https://siem.example.com/api/guardrail-events
+    headers:
+      Authorization: "Bearer YOUR_API_KEY"
+      Content-Type: "application/json"
+    payload: |
+      {
+        "event_type": "{{ policy.name }}",
+        "input": "{{ user_input }}",
+        "timestamp": "{{ timestamp }}",
+        "session_id": "{{ session_id }}",
+        "llm_model": "{{ model.name }}",
+        "severity": "warning"
+      }
+
+  - name: local-warning-log
+    type: log
+    level: warning
+    message: |
+      [Guardrails] {{ policy.name }} triggered
+      Input: {{ user_input }}
+      Time: {{ timestamp }}
+      Session: {{ session_id }}
+
+# ======================
+#  Policy #1: Bypass Detection
+# ======================
+policies:
+  - name: detect-policy-bypass-attempts
+    conditions:
+      - type: regex
+        pattern: (?i)\b(disable|bypass|remove|turn off)\b.*\b(policy|validation|guardrail|check)\b
+    actions:
+      - type: block
+        message: "This request violates security policy."
+      - action: send-to-siem
+      - action: local-warning-log
+
+# ======================
+#  Policy #2: Sensitive Data Leak
+# ======================
+  - name: detect-sensitive-data
+    conditions:
+      - type: regex
+        pattern: \b(?:\d[ -]*?){13,16}\b
+    actions:
+      - type: block
+        message: "Detected sensitive data. Please remove it."
+      - action: send-to-siem
+      - action: local-warning-log
