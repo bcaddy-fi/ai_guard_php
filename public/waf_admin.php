@@ -25,6 +25,9 @@ if (!file_exists($configPath)) {
             'block_xss' => isset($_POST['block_xss']),
             'rate_limit_enabled' => isset($_POST['rate_limit_enabled']),
             'json_response_enabled' => isset($_POST['json_response_enabled']),
+            'captcha_enabled' => isset($_POST['captcha_enabled']),
+            'hcaptcha_site_key' => trim($_POST['hcaptcha_site_key'] ?? ''),
+            'hcaptcha_secret_key' => trim($_POST['hcaptcha_secret_key'] ?? '')
         ];
 
         file_put_contents($configPath, '<?php return ' . var_export($newConfig, true) . ';');
@@ -138,6 +141,33 @@ $wafDenials = $stmt->fetchAll(PDO::FETCH_ASSOC);
       <input class="form-check-input" type="checkbox" name="json_response_enabled" id="json_response_enabled" <?= !empty($config['json_response_enabled']) ? 'checked' : '' ?>>
       <label class="form-check-label" for="json_response_enabled">Enable JSON-Compatible API Responses</label>
     </div>
+<hr class="my-4">
+<h4><i class="fa fa-robot"></i> CAPTCHA Settings</h4>
+
+<div class="form-check mb-2">
+  <input class="form-check-input" type="checkbox" name="captcha_enabled" id="captcha_enabled"
+         <?= !empty($config['captcha_enabled']) ? 'checked' : '' ?>>
+  <label class="form-check-label" for="captcha_enabled">Enable CAPTCHA Challenge After WAF Denials</label>
+</div>
+
+<div class="mb-3">
+  <label for="hcaptcha_site_key" class="form-label">hCaptcha Site Key</label>
+  <input type="text" class="form-control" id="hcaptcha_site_key" name="hcaptcha_site_key"
+         value="<?= htmlspecialchars($config['hcaptcha_site_key'] ?? '') ?>">
+</div>
+
+<div class="mb-3">
+  <label for="hcaptcha_secret_key" class="form-label">hCaptcha Secret Key</label>
+  <input type="text" class="form-control" id="hcaptcha_secret_key" name="hcaptcha_secret_key"
+         value="<?= htmlspecialchars($config['hcaptcha_secret_key'] ?? '') ?>">
+</div>
+
+<?php if (!empty($config['captcha_enabled']) && (empty($config['hcaptcha_site_key']) || empty($config['hcaptcha_secret_key']))): ?>
+  <div class="alert alert-warning">
+    <i class="fa fa-exclamation-triangle"></i> CAPTCHA is enabled, but one or both hCaptcha keys are missing.
+  </div>
+<?php endif; ?>
+
 
     <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Save Configuration</button>
   </form>

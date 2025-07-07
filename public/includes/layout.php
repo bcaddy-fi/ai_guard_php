@@ -46,6 +46,7 @@ $role = $_SESSION['role'] ?? 'read';
               <ul class="dropdown-menu">
                 <li><a class="dropdown-item" href="manage_personas.php">Manage Personas</a></li>
                 <li><a class="dropdown-item" href="persona_builder.php">Persona Wizard</a></li>
+		<li><a class="dropdown-item" href="persona_import.php">Persona Import</a></li>
                 <li><a class="dropdown-item" href="test_persona.php">Persona Test</a></li>
                 <li><a class="dropdown-item" href="help_personas.html">Persona Help</a></li>
               </ul>
@@ -57,6 +58,7 @@ $role = $_SESSION['role'] ?? 'read';
               <ul class="dropdown-menu">
                 <li><a class="dropdown-item" href="manage_guardrails.php">Manage Guardrails</a></li>
                 <li><a class="dropdown-item" href="guardrail_builder.php">Guardrail Wizard</a></li>
+	        <li><a class="dropdown-item" href="guardrail_import.php">Guardrail Import</a></li>
                 <li><a class="dropdown-item" href="test_guardrail.php">Guardrail Test</a></li>
                 <li><a class="dropdown-item" href="help_guardrails.html">Guardrail Help</a></li>
               </ul>

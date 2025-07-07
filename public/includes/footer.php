@@ -1,5 +1,5 @@
 <?php
-$portalVersion = 'v0.5'; // central config or git tag could go here later
+$portalVersion = 'v0.9'; // central config or git tag could go here later
 ?>
 <footer class="bg-dark text-white text-center py-3 mt-5">
   <div class="container">

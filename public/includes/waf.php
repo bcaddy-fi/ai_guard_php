@@ -1,6 +1,8 @@
 <?php
+session_start();
+
 $config = require __DIR__ . '/../../config/waf_config.php';
-if (!$config['enabled']) return;
+if (empty($config['enabled'])) return;
 
 require_once __DIR__ . '/../../app/controllers/db.php';
 $pdo = $pdo ?? null;
@@ -10,7 +12,9 @@ $path = $_SERVER['REQUEST_URI'] ?? '';
 $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
 $country = getCountryByIP($ip);
 
-// --- Denial Logger ---
+// --- Allow if CAPTCHA previously passed ---
+
+// --- Helpers ---
 function log_waf_denial($ip, $country, $reason, $path, $ua) {
     global $pdo;
     if (!$pdo instanceof PDO) return;
@@ -22,16 +26,13 @@ function log_waf_denial($ip, $country, $reason, $path, $ua) {
     }
 }
 
-// --- Response Formatter ---
 function respond_waf_block($message) {
     global $config;
     http_response_code(403);
-
-    $isApi = !empty($config['json_response_enabled']) && (
-        (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json')) ||
-        str_contains($_SERVER['REQUEST_URI'], '/api/') ||
-        str_ends_with($_SERVER['SCRIPT_NAME'], '.json')
-    );
+    $isApi = !empty($config['json_response_enabled']) &&
+        ((isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json')) ||
+         str_contains($_SERVER['REQUEST_URI'], '/api/') ||
+         str_ends_with($_SERVER['SCRIPT_NAME'], '.json'));
 
     if ($isApi) {
         header('Content-Type: application/json');
@@ -42,26 +43,33 @@ function respond_waf_block($message) {
     exit;
 }
 
-// --- Country Lookup ---
 function getCountryByIP($ip): string {
-    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_RES_RANGE | FILTER_FLAG_NO_PRIV_RANGE) === false) {
-        return 'XX';
-    }
-    $country = @file_get_contents("https://ipapi.co/{$ip}/country/");
-    return ($country && strlen($country) === 2) ? strtoupper(trim($country)) : 'XX';
+    if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_RES_RANGE | FILTER_FLAG_NO_PRIV_RANGE)) return 'XX';
+    $result = @file_get_contents("https://ipapi.co/{$ip}/country/");
+    return ($result && strlen($result) === 2) ? strtoupper(trim($result)) : 'XX';
 }
 
-// --- Rate Limiting ---
-function check_rate_limit($ip): bool {
+function get_denial_count($ip): int {
     global $pdo;
-    if (!$pdo instanceof PDO) return false;
-
+    if (!$pdo instanceof PDO) return 0;
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM waf_denials WHERE ip_address = ? AND timestamp > NOW() - INTERVAL 10 MINUTE");
     $stmt->execute([$ip]);
-    return ($stmt->fetchColumn() > 10);
+    return (int) $stmt->fetchColumn();
 }
 
-// --- IP Filtering ---
+// --- CAPTCHA redirect if rate limited ---
+$denialCount = get_denial_count($ip);
+if (!empty($config['rate_limit_enabled']) && $denialCount >= 3) {
+    if (!empty($config['captcha_enabled']) && !isset($_SESSION['captcha_passed'])) {
+        log_waf_denial($ip, $country, "Rate limit exceeded — redirecting to CAPTCHA", $path, $ua);
+        header("Location: /captcha_challenge.php?return=" . urlencode($path));
+        exit;
+    } elseif (empty($config['captcha_enabled'])) {
+        log_waf_denial($ip, $country, "Rate limit exceeded (no CAPTCHA enabled)", $path, $ua);
+        respond_waf_block("Too many requests. Try again later.");
+    }
+}
+// --- IP restrictions ---
 $ipList = $config['block_ips'] ?? [];
 if ($config['ip_mode'] === 'allow_all_except' && in_array($ip, $ipList)) {
     log_waf_denial($ip, $country, "IP blocked (blacklist)", $path, $ua);
@@ -72,7 +80,7 @@ if ($config['ip_mode'] === 'block_all_except' && !in_array($ip, $ipList)) {
     respond_waf_block("Your IP is not whitelisted.");
 }
 
-// --- Country Filtering ---
+// --- Country restrictions ---
 $countryList = $config['allow_countries'] ?? [];
 if ($config['country_mode'] === 'allow_all_except' && in_array($country, $countryList)) {
     log_waf_denial($ip, $country, "Country blocked (blacklist)", $path, $ua);
@@ -83,46 +91,40 @@ if ($config['country_mode'] === 'block_all_except' && !in_array($country, $count
     respond_waf_block("Your country ($country) is not allowed.");
 }
 
-// --- Rate Limit Check ---
-if (!empty($config['rate_limit_enabled']) && check_rate_limit($ip)) {
-    log_waf_denial($ip, $country, "Rate limit exceeded", $path, $ua);
-    respond_waf_block("Too many requests. Please try again later.");
-}
-
-// --- SQLi Detection ---
+// --- SQL Injection detection ---
 if (!empty($config['block_sql_injection'])) {
     foreach ($_REQUEST as $key => $val) {
         if (is_string($val) && preg_match('/(union\s+select|select\s.*from|insert\s+into|drop\s+table|--|\bor\b|\band\b)/i', $val)) {
             log_waf_denial($ip, $country, "SQLi attempt: $key=$val", $path, $ua);
-            respond_waf_block("Blocked: SQL injection pattern detected.");
+            respond_waf_block("Blocked: SQL injection detected.");
         }
     }
 }
 
-// --- XSS Detection ---
+// --- XSS detection ---
 if (!empty($config['block_xss'])) {
     foreach ($_REQUEST as $key => $val) {
         if (is_string($val) && preg_match('/<script\b[^>]*>/i', $val)) {
             log_waf_denial($ip, $country, "XSS attempt: $key=$val", $path, $ua);
-            respond_waf_block("Blocked: Potential XSS detected.");
+            respond_waf_block("Blocked: Potential XSS attack.");
         }
     }
 }
 
-// --- User-Agent Filtering ---
+// --- User-Agent blacklist ---
 $badAgents = ['sqlmap', 'curl', 'python-requests', 'wget', 'httpclient', 'nikto'];
 foreach ($badAgents as $bad) {
     if (stripos($ua, $bad) !== false) {
-        log_waf_denial($ip, $country, "Blocked user-agent: $ua", $path, $ua);
-        respond_waf_block("Your user-agent is not allowed.");
+        log_waf_denial($ip, $country, "Bad user-agent: $ua", $path, $ua);
+        respond_waf_block("Your client is not allowed.");
     }
 }
 
-// --- Referer Spoofing or Missing on POST ---
+// --- Referer spoofing or missing check ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $referer = $_SERVER['HTTP_REFERER'] ?? '';
     if (empty($referer)) {
-        log_waf_denial($ip, $country, "POST with empty Referer", $path, $ua);
-        respond_waf_block("Invalid request: Missing referer.");
+        log_waf_denial($ip, $country, "POST with empty referer", $path, $ua);
+        respond_waf_block("Missing referer header.");
     }
 }

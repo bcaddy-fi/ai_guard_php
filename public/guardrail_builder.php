@@ -1,147 +1,138 @@
 <?php
-
 require __DIR__ . '/../app/controllers/auth.php';
 require_login();
 require __DIR__ . '/../app/controllers/db.php';
 
-$success = '';
-$error = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $filename = basename($_POST['fileName']) . '.yaml';
-    $path = __DIR__ . '/../data/models/' . $filename;
-    $yaml = $_POST['yamlContent'] ?? '';
-
-    if (!preg_match('/^[a-zA-Z0-9._-]+\.ya?ml$/', $filename)) {
-        $error = "Invalid file name.";
-    } else {
-        $lines = explode("\n", $yaml);
-
-        // Handle versioning
-        if (preg_match('/^#?\s*version:\s*(\d+)\.(\d+)\.(\d+)/i', $lines[0], $matches)) {
-            $major = (int)$matches[1];
-            $minor = (int)$matches[2];
-            $patch = (int)$matches[3] + 1;
-            $lines[0] = "# version: {$major}.{$minor}.{$patch}";
-        } else {
-            array_unshift($lines, "# version: 1.0.0");
-        }
-
-        $versionedYaml = implode("\n", $lines);
-
-        file_put_contents($path, $versionedYaml);
-        $success = "Model file '{$filename}' saved successfully with versioning.";
-
-        $username = $_SESSION['user_id'] ?? 'unknown';
-        $log = $pdo->prepare("INSERT INTO file_audit_log (username, filename, file_content) VALUES (?, ?, ?)");
-        $log->execute([$username, $filename, $versionedYaml]);
-    }
-}
+use Symfony\Component\Yaml\Yaml;
 
 ob_start();
 ?>
+<h1>&#9881; Build New Guardrail</h1>
 
-<h2>Advanced Guardrail YAML Wizard</h2>
-
-<?php if ($error): ?>
-  <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
-<?php endif; ?>
-<?php if ($success): ?>
-  <div class="alert alert-success"><?= htmlspecialchars($success) ?></div>
-<?php endif; ?>
-
-<form method="post" onsubmit="return generateComplexYAML();">
-  <input type="hidden" name="yamlContent" id="yamlContent" />
-
+<form method="post">
   <div class="mb-3">
-    <label class="form-label">File Name (no extension)</label>
-    <input type="text" id="fileName" name="fileName" class="form-control" required placeholder="example_model">
+    <label class="form-label">Guardrail Name *</label>
+    <input type="text" class="form-control" name="name" required placeholder="e.g., restrict_financial_advice" />
   </div>
 
   <div class="mb-3">
-    <label class="form-label">Model Identifier</label>
-    <input type="text" id="modelId" class="form-control" required placeholder="qwen/qwen3-8b">
+    <label class="form-label">Description *</label>
+    <textarea class="form-control" name="description" rows="3" required></textarea>
   </div>
 
   <div class="mb-3">
-    <label class="form-label">Base Key</label>
-    <input type="text" id="baseKey" class="form-control" required placeholder="lmstudio-community/qwen3-8b-gguf">
+    <label class="form-label">Action *</label>
+    <select class="form-select" name="action" required>
+      <option value="">-- Select Action --</option>
+      <option value="block">Block</option>
+      <option value="log">Log</option>
+      <option value="notify">Notify</option>
+    </select>
   </div>
 
   <div class="mb-3">
-    <label class="form-label">Source (Hugging Face)</label>
-    <input type="text" id="hfUser" class="form-control mb-2" placeholder="User" value="lmstudio-community">
-    <input type="text" id="hfRepo" class="form-control" placeholder="Repo" value="Qwen-3-8B-GGUF">
+    <label class="form-label">Rule Match Pattern (Regex) *</label>
+    <input type="text" class="form-control" name="pattern" required placeholder="e.g., (guaranteed\s+return|stock\s+tip)" />
   </div>
 
   <div class="mb-3">
-    <label class="form-label">Metadata Overrides</label>
-    <textarea id="metadataOverrides" class="form-control" rows="6" placeholder="domain: llm&#10;architectures: [llama]&#10;..."></textarea>
+    <label class="form-label">Regex Helper <small class="text-muted">(optional)</small></label>
+    <button type="button" class="btn btn-sm btn-outline-secondary mb-2" data-bs-toggle="collapse" data-bs-target="#regexHelper">Toggle Helper</button>
+    <div class="collapse" id="regexHelper">
+      <div class="card card-body bg-light">
+        <p><strong>Examples:</strong></p>
+        <ul>
+          <li><code>guaranteed\s+return</code> - matches "guaranteed return"</li>
+          <li><code>stock\s+tip</code> - matches "stock tip"</li>
+          <li><code>select\s+.*from</code> - matches SQL-like patterns</li>
+          <li><code>&lt;script.*&gt;</code> - matches XSS script tags</li>
+        </ul>
+
+        <label class="form-label mt-2">Test a Regex Pattern</label>
+        <input type="text" class="form-control" id="regexPattern" placeholder="e.g. stock\s+tip">
+
+        <label class="form-label mt-2">Test Input</label>
+        <input type="text" class="form-control" id="regexTestInput" placeholder="e.g. This is a stock tip from John.">
+
+        <div id="regexResult" class="mt-2 fw-bold"></div>
+      </div>
+    </div>
   </div>
 
   <div class="mb-3">
-    <label class="form-label">Config Fields</label>
-    <textarea id="configFields" class="form-control" rows="4" placeholder="- key: llm.prediction.topKSampling&#10;  value: 20"></textarea>
+    <label class="form-label">Custom Response Message</label>
+    <textarea class="form-control" name="response" rows="3" placeholder="Optional custom message if matched."></textarea>
   </div>
 
-  <div class="mb-3">
-    <label class="form-label">Custom Fields</label>
-    <textarea id="customFields" class="form-control" rows="6" placeholder="- key: enableThinking&#10;  displayName: Enable Thinking&#10;  type: boolean&#10;  defaultValue: true"></textarea>
-  </div>
-
-  <div class="mb-3">
-    <label class="form-label">Suggestions</label>
-    <textarea id="suggestions" class="form-control" rows="6" placeholder="- message: Suggested values...&#10;  conditions:&#10;    - type: equals&#10;      key: $.enableThinking&#10;      value: true"></textarea>
-  </div>
-
-  <div class="d-grid">
-    <button class="btn btn-primary" type="submit">Save Model</button>
-  </div>
-
-  <h5 class="mt-4">YAML Preview</h5>
-  <div class="bg-light p-3 border rounded" id="output" style="white-space: pre; min-height: 200px;"></div>
+  <button type="submit" class="btn btn-primary">&#9998; Generate Guardrail YAML</button>
 </form>
 
-<script>
-function indent(text, spaces = 2) {
-  return text.split("\n").map(line => " ".repeat(spaces) + line).join("\n");
-}
-
-function generateComplexYAML() {
-  const modelId = document.getElementById('modelId').value.trim();
-  const fileName = document.getElementById('fileName').value.trim();
-  const baseKey = document.getElementById('baseKey').value.trim();
-  const hfUser = document.getElementById('hfUser').value.trim();
-  const hfRepo = document.getElementById('hfRepo').value.trim();
-  const metadataOverrides = document.getElementById('metadataOverrides').value.trim();
-  const configFields = document.getElementById('configFields').value.trim();
-  const customFields = document.getElementById('customFields').value.trim();
-  const suggestions = document.getElementById('suggestions').value.trim();
-
-  const yaml = `model: ${modelId}
-base:
-  - key: ${baseKey}
-    sources:
-      - type: huggingface
-        user: ${hfUser}
-        repo: ${hfRepo}
-metadataOverrides:
-${indent(metadataOverrides, 2)}
-config:
-  operation:
-    fields:
-${indent(configFields, 6)}
-customFields:
-${indent(customFields, 2)}
-suggestions:
-${indent(suggestions, 2)}`;
-
-  document.getElementById("yamlContent").value = yaml;
-  document.getElementById("output").textContent = `# File: ${fileName}.yaml\n\n${yaml}`;
-  return true;
-}
-</script>
-<?php include 'includes/footer.php'; ?>
 <?php
+function clean($key) {
+  return htmlspecialchars(trim($_POST[$key] ?? ''), ENT_QUOTES);
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST'):
+  $name = clean('name');
+  $desc = clean('description');
+  $action = clean('action');
+  $pattern = trim($_POST['pattern']);
+  $response = trim($_POST['response']);
+
+$output = "# version: 1.0.0\n";
+$output .= "guardrail:\n";
+$output .= "  name: " . $name . "\n";
+$output .= "  description: |\n";
+foreach (explode("\n", $desc) as $line) {
+    $output .= "    " . $line . "\n";
+}
+$output .= "  action: " . $action . "\n";
+$output .= "  rules:\n";
+$output .= "    - match: \"" . addslashes($pattern) . "\"\n";
+$output .= "      type: regex\n";
+if (!empty($response)) {
+    $output .= "      response: |\n";
+    foreach (explode("\n", $response) as $line) {
+        $output .= "        " . $line . "\n";
+    }
+}
+  $dir = __DIR__ . '/../data/guardrails';
+  if (!is_dir($dir)) {
+    mkdir($dir, 0777, true);
+  }
+  $file_path = "$dir/{$name}.yaml";
+  file_put_contents($file_path, $output);
+?>
+  <hr />
+  <h3>&#128196; Generated YAML</h3>
+  <pre class="bg-light border p-3"><?= htmlspecialchars($output) ?></pre>
+<?php endif; ?>
+
+<script>
+  const patternInput = document.getElementById("regexPattern");
+  const testInput = document.getElementById("regexTestInput");
+  const resultDisplay = document.getElementById("regexResult");
+
+  [patternInput, testInput].forEach(el => {
+    el?.addEventListener("input", () => {
+      const pattern = patternInput.value;
+      const input = testInput.value;
+
+      try {
+        const regex = new RegExp(pattern, "i");
+        const match = regex.test(input);
+        resultDisplay.textContent = match ? "&#10004; Pattern MATCHED the input." : "&#10060; Pattern did NOT match.";
+        resultDisplay.className = match ? "text-success fw-bold" : "text-danger fw-bold";
+      } catch (e) {
+        resultDisplay.textContent = "&#9888;&#65039; Invalid Regex: " + e.message;
+        resultDisplay.className = "text-warning";
+      }
+    });
+  });
+</script>
+
+<?php
+include 'includes/footer.php';
 $content = ob_get_clean();
 include 'includes/layout.php';
+?>
