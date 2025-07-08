@@ -41,26 +41,34 @@ $role = $_SESSION['role'] ?? 'read';
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
 
           <?php if (in_array($role, ['engineer', 'admin'])): ?>
+	   <!-- Agent / Rule Dropdown -->
             <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Agents</a>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="manage_rules.php">Manage Agents</a></li>
+                <li><a class="dropdown-item" href="build_rule.php">Agent Wizard</a></li>
+              </ul>
+            </li>
+            <!-- Persona Dropdown -->
+	    <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Persona</a>
               <ul class="dropdown-menu">
                 <li><a class="dropdown-item" href="manage_personas.php">Manage Personas</a></li>
                 <li><a class="dropdown-item" href="persona_builder.php">Persona Wizard</a></li>
 		<li><a class="dropdown-item" href="persona_import.php">Persona Import</a></li>
                 <li><a class="dropdown-item" href="test_persona.php">Persona Test</a></li>
-                <li><a class="dropdown-item" href="help_personas.html">Persona Help</a></li>
               </ul>
             </li>
 
             <!-- Guardrail Dropdown -->
             <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Guardrail Policy</a>
+              <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Guardrail</a>
               <ul class="dropdown-menu">
                 <li><a class="dropdown-item" href="manage_guardrails.php">Manage Guardrails</a></li>
                 <li><a class="dropdown-item" href="guardrail_builder.php">Guardrail Wizard</a></li>
 	        <li><a class="dropdown-item" href="guardrail_import.php">Guardrail Import</a></li>
                 <li><a class="dropdown-item" href="test_guardrail.php">Guardrail Test</a></li>
-                <li><a class="dropdown-item" href="help_guardrails.html">Guardrail Help</a></li>
+
               </ul>
             </li>
             <li class="nav-item dropdown">
@@ -68,11 +76,8 @@ $role = $_SESSION['role'] ?? 'read';
               <ul class="dropdown-menu">
                 <li><a class="dropdown-item" href="manage_models.php">Manage Models</a></li>
                 <li><a class="dropdown-item" href="model_builder.php">Model Wizard</a></li>
-                <li><a class="dropdown-item" href="help_models.html">Model Help</a></li>
-
               </ul>
             </li>
-
           <?php endif; ?>
 
           <?php if ($role === 'admin'): ?>
@@ -110,14 +115,22 @@ $role = $_SESSION['role'] ?? 'read';
         </ul>
 <ul class="navbar-nav">
   <li class="nav-item">
-    <a class="nav-link" href="help.html" title="Help">
+    <a class="nav-link" href="help.html" target="_blank" rel="noopener" title="Help">
       <i class="fa fa-circle-question"></i> Help
     </a>
   </li>
-        <ul class="navbar-nav">
-          <li class="nav-item"><a class="nav-link" href="logout.php">Logout</a></li>
-        </ul>
-      </div>
+  <li class="nav-item">
+    <a class="nav-link" href="about.html" target="_blank" rel="noopener" title="About AI Guard Manager">
+      <i class="fa fa-info-circle"></i> About
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" href="logout.php" title="Logout">
+      <i class="fa fa-sign-out-alt"></i> Logout
+    </a>
+  </li>
+</ul>
+     </div>
     </div>
   </nav>
 

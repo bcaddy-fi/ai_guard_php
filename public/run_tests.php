@@ -1,10 +1,35 @@
 <?php
 require __DIR__ . '/../app/controllers/db.php';
+require_once __DIR__ . '/../app/controllers/openai_inference.php';
 
 function run_ai_test($input, $context_yaml) {
-    // Replace this with actual API call (e.g., OpenAI or internal AI)
-    // Simulate a fake response for now
-    return rand(0, 1) === 1 ? 'pass' : 'block';
+    global $apiKey;
+
+    $response = call_openai_api([
+        'model' => 'gpt-4',
+        'temperature' => 0.3,
+        'messages' => [
+            ['role' => 'system', 'content' => $context_yaml],
+            ['role' => 'user', 'content' => $input]
+        ]
+    ]);
+
+    $content = strtolower($response['choices'][0]['message']['content'] ?? '');
+
+    if (strpos($content, 'block') !== false || strpos($content, 'deny') !== false) {
+        return 'block';
+    }
+    return 'pass';
+}
+
+function find_matching_rules($prompt, $response, $yamlRules) {
+    $matched = [];
+    foreach ($yamlRules as $rule) {
+        if (stripos($prompt, $rule) !== false || stripos($response, $rule) !== false) {
+            $matched[] = $rule;
+        }
+    }
+    return $matched;
 }
 
 // Get test cases
@@ -48,8 +73,8 @@ foreach ($testCases as $test) {
 }
 
 // Output summary
+header('Content-Type: text/plain');
 echo "Test Run Completed:\n";
 foreach ($results as $res) {
     echo "Test #{$res['id']} - {$res['result']} (Expected: {$res['expected']}, Got: {$res['actual']})\n";
 }
-?>

@@ -18,16 +18,22 @@
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container-fluid">
-    <a class="navbar-brand" href="dashboard.php"><img src="https://guard-manager.isms-cloud.com/aiguardmanager.png" width="110" height="35"></a>    <div class="collapse navbar-collapse">
+    <a class="navbar-brand" href="dashboard.php">
+      <img src="https://guard-manager.isms-cloud.com/aiguardmanager.png" width="110" height="35">
+    </a>
+    <div class="collapse navbar-collapse">
       <ul class="navbar-nav">
         <li class="nav-item"><a class="nav-link" href="dashboard.php">Dashboard</a></li>
-        <li class="nav-item"><a class="nav-link" href="bug_tracker.php">Bug Tracker</a></li>
-        <li class="nav-item"><a class="nav-link" href="admin_console.php">Admin Console</a></li>
-        <li class="nav-item"><a class="nav-link" href="logout.php">Logout</a></li>
+        <li class="nav-item"><a class="nav-link" href="help.html">Main Help</a></li>
+        <li class="nav-item"><a class="nav-link" href="help_concepts.html">Agent vs. Persona ETC Guide</a></li>
+        <li class="nav-item"><a class="nav-link" href="help_persona.html">Persona Help</a></li>
+        <li class="nav-item"><a class="nav-link" href="help_guardrails.html">Guardrail Help</a></li>
+        <li class="nav-item"><a class="nav-link" href="help_model.html">Model Help</a></li>
       </ul>
     </div>
   </div>
 </nav>
+
 <div class="container my-5">
   <h1>AI Guard Manager Portal - Complete Help & Installation Guide</h1>
 
@@ -67,9 +73,12 @@ GRANT ALL PRIVILEGES ON ai_guard_manager.* TO 'aiguard'@'localhost' IDENTIFIED B
 
   <h3>Help Topics</h3>
   <ul>
-    <li><a href="help_guardrails.html">Guardrail Definition Guide</a></li>
+    <li><a href="help_concepts.html">Agent, Persona, Guardrail, and Model Concepts</a></li>
     <li><a href="help_personas.html">Persona YAML Help</a></li>
+    <li><a href="help_guardrails.html">Guardrail Definition Guide</a></li>
     <li><a href="help_models.html">Model Configuration</a></li>
+    <li><a href="help_waf.html">WAF Management Help</a></li>
+    <li><a href="help_agent.html">Agent Rule Builder Help</a></li>
   </ul>
 
   <h3>Troubleshooting</h3>
@@ -80,8 +89,9 @@ GRANT ALL PRIVILEGES ON ai_guard_manager.* TO 'aiguard'@'localhost' IDENTIFIED B
     <li><strong>Permissions:</strong> Ensure <code>www-data</code> owns all writable directories</li>
   </ul>
 
-  <a href="dashboard.php" class="btn btn-secondary mt-4">Back to Dashboard</a>
+  <a href="dashboard.php" class="btn btn-secondary mt-4"><i class="fa fa-arrow-left"></i> Back to Dashboard</a>
 </div>
+
 <footer class="bg-dark text-white text-center py-3 mt-5">
   <div class="container">
     <small>&copy; <?= date('Y') ?> AI Management Portal. Built by Bryan Caddy.</small>

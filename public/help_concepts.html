@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Guard Manager - Concept Definitions</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <style>
+    pre {
+      background: #f8f9fa;
+      padding: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      white-space: pre-wrap;
+    }
+    .box {
+      background: #fff;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      border-left: 5px solid #2563eb;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="dashboard.php"><img src="https://guard-manager.isms-cloud.com/aiguardmanager.png" width="110" height="35"></a>
+    <div class="collapse navbar-collapse">
+      <ul class="navbar-nav">
+        <li class="nav-item"><a class="nav-link" href="dashboard.php">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="bug_tracker.php">Bug Tracker</a></li>
+        <li class="nav-item"><a class="nav-link" href="admin_console.php">Admin Console</a></li>
+        <li class="nav-item"><a class="nav-link" href="logout.php">Logout</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-5">
+  <h1 class="mb-4">AI Guard Manager - Key Concepts Explained</h1>
+
+  <div class="box">
+    <h2>1. Agent</h2>
+    <p><strong>Definition:</strong> A complete AI-based entity that performs tasks autonomously or semi-autonomously.</p>
+    <ul>
+      <li>Has a defined <strong>purpose</strong></li>
+      <li>Built from a <em>Model</em>, <em>Persona</em>, and <em>Guardrails</em></li>
+      <li>May include memory, tools, and planning logic</li>
+    </ul>
+    <pre>TravelAdvisorBot = GPT-4 + TravelPersona + Travel Guardrails</pre>
+  </div>
+
+  <div class="box">
+    <h2>2. Persona</h2>
+    <p><strong>Definition:</strong> The AI's personality, tone, and communication style.</p>
+    <ul>
+      <li>Defines the identity and role of the AI</li>
+      <li>Shapes tone and language used in responses</li>
+      <li>Can include example prompts and answers</li>
+    </ul>
+    <pre>
+name: Travel Assistant
+tone: Friendly and energetic
+role: Recommends vacations without booking
+    </pre>
+  </div>
+
+  <div class="box">
+    <h2>3. Guardrail</h2>
+    <p><strong>Definition:</strong> A policy or rule that restricts or governs the AI's behavior to ensure safety, compliance, or ethics.</p>
+    <ul>
+      <li>May block, log, or rewrite inputs/outputs</li>
+      <li>Used for legal, ethical, or risk boundaries</li>
+      <li>Often implemented using YAML or security filters</li>
+    </ul>
+    <pre>
+aml_guardrail.yaml
+- Block prompts about laundering money
+- Log responses about fraud
+- Respond with "This violates policy..."
+    </pre>
+  </div>
+
+  <div class="box">
+    <h2>4. Model</h2>
+    <p><strong>Definition:</strong> The core large language model (LLM) used to generate responses.</p>
+    <ul>
+      <li>Processes prompts and returns completions</li>
+      <li>Examples: GPT-4, Claude, Gemini, LLaMA</li>
+      <li>Configured via temperature, token limit, etc.</li>
+    </ul>
+    <pre>
+model: gpt-4
+temperature: 0.3
+max_tokens: 2048
+system_prompt: "You are a travel expert..."
+    </pre>
+  </div>
+
+  <div class="box">
+    <h2>Concept Summary Table</h2>
+    <table class="table table-bordered">
+      <thead class="table-dark">
+        <tr>
+          <th>Concept</th>
+          <th>Role</th>
+          <th>Contains</th>
+          <th>Controls</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Agent</strong></td>
+          <td>The deployed AI entity</td>
+          <td>Model + Persona + Guardrails</td>
+          <td>Task / Goal</td>
+        </tr>
+        <tr>
+          <td><strong>Persona</strong></td>
+          <td>Defines identity, tone, role</td>
+          <td>Name, tone, examples</td>
+          <td>Style / Behavior</td>
+        </tr>
+        <tr>
+          <td><strong>Guardrail</strong></td>
+          <td>Restricts unsafe behavior</td>
+          <td>Rules, filters, logging</td>
+          <td>Risk / Compliance</td>
+        </tr>
+        <tr>
+          <td><strong>Model</strong></td>
+          <td>LLM engine</td>
+          <td>GPT, Claude, etc.</td>
+          <td>Response generation</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <a href="dashboard.php" class="btn btn-secondary mt-4"><i class="fa fa-arrow-left"></i> Back to Dashboard</a>
+</div>
+
+<footer class="bg-dark text-white text-center py-3 mt-5">
+  <div class="container">
+    <small>&copy; <?= date('Y') ?> AI Management Portal. Built by Bryan Caddy.</small>
+  </div>
+</footer>
+</body>
+</html>

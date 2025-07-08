@@ -13,7 +13,7 @@ include 'includes/layout.php';
     <h1>Manage Agent Rules</h1>
 
     <div class="mb-3">
-        <a href="build_rule.php" class="btn btn-success">? Create New Rule</a>
+        <a href="build_rule.php" class="btn btn-success">Create New Rule</a>
     </div>
 
     <?php if (empty($rules)): ?>

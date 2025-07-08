@@ -10,7 +10,6 @@ $personaYaml = '';
 if ($selectedFile && file_exists($directory . $selectedFile)) {
     $personaYaml = file_get_contents($directory . $selectedFile);
 }
-
 ob_start();
 ?>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">

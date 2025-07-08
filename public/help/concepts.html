@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Guard Manager – Key Concepts</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: sans-serif; margin: 2rem; background: #f9f9f9; color: #222; }
+    h1, h2 { color: #2c3e50; }
+    .box { background: #fff; padding: 1.5rem; margin-bottom: 2rem; border-left: 5px solid #2563eb; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+    .box h2 { margin-top: 0; }
+    .code { background: #f4f4f4; padding: 0.75rem; font-family: monospace; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { padding: 0.75rem; border: 1px solid #ccc; text-align: left; }
+    th { background: #f0f0f0; }
+  </style>
+</head>
+<body>
+
+  <h1>AI Guard Manager: Key Concepts</h1>
+
+  <div class="box">
+    <h2>1. Agent</h2>
+    <p><strong>Definition:</strong> A complete AI-based entity that performs tasks autonomously or semi-autonomously.</p>
+    <p><strong>Characteristics:</strong></p>
+    <ul>
+      <li>Has a defined <strong>purpose</strong> or goal</li>
+      <li>Includes a <em>Model</em>, <em>Persona</em>, and <em>Guardrails</em></li>
+      <li>Can interact with users or systems</li>
+    </ul>
+    <p><strong>Example:</strong></p>
+    <div class="code">TravelAdvisorBot = Model + TravelPersona + Guardrails</div>
+  </div>
+
+  <div class="box">
+    <h2>2. Persona</h2>
+    <p><strong>Definition:</strong> The AI’s personality, tone, and communication style.</p>
+    <p><strong>Characteristics:</strong></p>
+    <ul>
+      <li>Defines tone, role, and identity</li>
+      <li>Helps shape consistent AI output</li>
+    </ul>
+    <p><strong>Example:</strong></p>
+    <div class="code">
+name: Travel Assistant<br>
+tone: Friendly and energetic<br>
+role: Recommends vacations without making bookings
+    </div>
+  </div>
+
+  <div class="box">
+    <h2>3. Guardrail</h2>
+    <p><strong>Definition:</strong> Security, compliance, or risk control rules that restrict AI behavior.</p>
+    <p><strong>Characteristics:</strong></p>
+    <ul>
+      <li>Block or log unsafe input/output</li>
+      <li>Used for ethics, legal, and policy enforcement</li>
+    </ul>
+    <p><strong>Example:</strong></p>
+    <div class="code">
+aml_guardrail.yaml:<br>
+- Block money laundering prompts<br>
+- Log responses about financial crimes<br>
+- Notify admin if triggered
+    </div>
+  </div>
+
+  <div class="box">
+    <h2>4. Model</h2>
+    <p><strong>Definition:</strong> The large language model (LLM) that generates the responses.</p>
+    <p><strong>Characteristics:</strong></p>
+    <ul>
+      <li>Processes prompts and returns completions</li>
+      <li>Examples: GPT-4, Claude, LLaMA, Gemini</li>
+    </ul>
+    <p><strong>Example:</strong></p>
+    <div class="code">
+gpt-4:<br>
+- Temperature: 0.3<br>
+- Max Tokens: 2048<br>
+- System Prompt: "You are a travel expert..."
+    </div>
+  </div>
+
+  <div class="box">
+    <h2>Concept Summary Table</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Concept</th>
+          <th>Role</th>
+          <th>Contains</th>
+          <th>Controls</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Agent</strong></td>
+          <td>The deployed AI entity</td>
+          <td>Model + Persona + Guardrails</td>
+          <td>Purpose / Function</td>
+        </tr>
+        <tr>
+          <td><strong>Persona</strong></td>
+          <td>Defines style & identity</td>
+          <td>Name, tone, examples</td>
+          <td>Behavior / Voice</td>
+        </tr>
+        <tr>
+          <td><strong>Guardrail</strong></td>
+          <td>Policy enforcer</td>
+          <td>Rules, filters, logs</td>
+          <td>Compliance / Risk</td>
+        </tr>
+        <tr>
+          <td><strong>Model</strong></td>
+          <td>LLM engine</td>
+          <td>GPT-4, Claude, etc.</td>
+          <td>Response generation</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</body>
+</html>

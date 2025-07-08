@@ -62,10 +62,13 @@ $cases = $stmt->fetchAll(PDO::FETCH_ASSOC);
       <td><?= htmlspecialchars((string)($c['created_at'] ?? '')) ?></td>
       <td>
         <form action="run_test.php" method="POST" style="display:inline-block;">
-          <input type="hidden" name="test_id" value="<?= $c['id'] ?>">
+          <input type="hidden" name="id" value="<?= $c['id'] ?>">
           <button type="submit" class="btn btn-sm btn-success">Run Test</button>
         </form>
         <a href="edit_test_case.php?id=<?= $c['id'] ?>" class="btn btn-sm btn-secondary">Edit</a>
+        <a href="explain_output.php?id=<?= $c['id'] ?>" class="btn btn-sm btn-info" target="_blank" title="Explain">
+  <i class="fas fa-lightbulb"></i> Explain
+</a>
       </td>
     </tr>
   <?php endforeach; ?>

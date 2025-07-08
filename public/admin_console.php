@@ -40,6 +40,29 @@ foreach ($settings as $s) {
 $auditLogStmt = $pdo->prepare("SELECT * FROM audit_log WHERE target_table = 'app_settings' ORDER BY timestamp DESC LIMIT 50");
 $auditLogStmt->execute();
 $auditEntries = $auditLogStmt->fetchAll(PDO::FETCH_ASSOC);
+$openai_test_result = '';
+if (isset($_GET['test_openai'])) {
+    $apiKey = getenv('OPENAI_API_KEY');
+    $ch = curl_init('https://api.openai.com/v1/models');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => [
+            'Authorization: Bearer ' . $apiKey,
+        ],
+    ]);
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode === 200) {
+        $openai_test_result = '<div class="alert alert-success"><i class="fa fa-check-circle"></i> OpenAI key is valid and authorized.</div>';
+    } elseif ($httpCode === 401) {
+        $openai_test_result = '<div class="alert alert-danger"><i class="fa fa-exclamation-triangle"></i> OpenAI key is invalid or unauthorized.</div>';
+    } else {
+        $openai_test_result = '<div class="alert alert-warning"><i class="fa fa-info-circle"></i> Unexpected response from OpenAI API (HTTP ' . $httpCode . ').</div>';
+    }
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -77,7 +100,9 @@ $auditEntries = $auditLogStmt->fetchAll(PDO::FETCH_ASSOC);
     </div>
   </div>
 </nav>
-
+<h4><i class="fa fa-vial"></i> Test OpenAI Key</h4>
+<a href="admin_console.php?test_openai=1" class="btn btn-outline-primary mb-3"><i class="fa fa-play-circle"></i> Run OpenAI Key Test</a>
+<?= $openai_test_result ?>
 <div class="container py-4"><br><br><br>
   <h2 class="mb-4"><i class="fa fa-gears"></i> Application Settings</h2>
 
