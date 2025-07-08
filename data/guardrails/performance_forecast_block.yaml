@@ -1,0 +1,10 @@
+# version: 1.0.0
+guardrail:
+  name: performance_forecast_block
+  description: Prevent predictions of asset or market performance.
+  action: block
+  rules:
+  - match: .*
+    type: regex
+    response: 'Prevent predictions of asset or market performance. [Filtered by guardrail:
+      performance_forecast_block]'

@@ -1,0 +1,10 @@
+# version: 1.0.0
+guardrail:
+  name: no_security_practice_disclosure
+  description: Prevent output of internal IT or security configurations.
+  action: block
+  rules:
+  - match: .*
+    type: regex
+    response: 'Prevent output of internal IT or security configurations. [Filtered
+      by guardrail: no_security_practice_disclosure]'

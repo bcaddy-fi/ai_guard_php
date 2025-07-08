@@ -1,0 +1,516 @@
+# version: 1.0.1
+# Repository: https://github.com/bcaddy-fi/Guardrail
+
+policies:
+
+  # Investment & Return Policies
+  - id: LLM-INV-GUARANTEE
+    name: "Guaranteed Returns Prohibition"
+    description: |
+      Detects when the LLM promises guaranteed or risk-free returns on investments,
+      which is disallowed under compliance guidelines.
+    enabled: true
+    severity: HIGH
+    category: compliance
+    matchers:
+      - type: llm_response
+        field: content
+        regex: (?ix)
+          \b
+          (guarantee|guaranteed|guarantees|assure|assured|risk[- ]?free)
+          \b
+          .{0,30}?
+          \b(return|profit|gain|yield|ROI|“return on investment”)\b
+    action:
+      type: block
+      message: |
+        I’m sorry, but I can’t guarantee investment returns or promise risk-free profits.
+
+  - id: LLM-INV-DISCLAIMER
+    name: "Investment Risk Disclaimer"
+    description: |
+      Appends a standard risk disclosure to any LLM response that appears
+      to provide investment advice or discuss securities.
+    enabled: true
+    severity: INFO
+    category: disclosure
+    matchers:
+      - type: llm_response
+        field: content
+        regex: (?ix)
+          \b
+          (invest|investment|stock|bond|securities|ETF|mutual\s+fund|portfolio|
+           asset\s+allocation|ROI|“return on investment”)
+          \b
+    action:
+      type: append
+      text: |
+        NOTE: Investing in securities involves a risk of loss. Past performance is never a guarantee of future returns. Investing in foreign stock markets involves additional risks, such as the risk of currency fluctuations.
+
+  # Input Validation Policies
+  - id: IN-PII-USER
+    name: "Detect PII in User Input"
+    description: |
+      Flags user inputs containing personal identifying information (SSNs,
+      account numbers, credit card numbers) to prevent unauthorized data collection.
+    enabled: true
+    severity: HIGH
+    category: input_validation
+    matchers:
+      - type: user_input
+        field: content
+        regex: (?x)
+          (\b\d{3}-\d{2}-\d{4}\b)       # SSN
+          |
+          (\b(?:\d[ -]*?){13,16}\b)      # Credit card
+          |
+          \b(password|passwd|login\s*credentials|account\s*number)\b
+    action:
+      type: block
+      message: |
+        Please remove any sensitive personal information (e.g., SSNs,
+        account numbers, credit card details) from your request.
+
+  - id: IN-INSIDER-REQUEST
+    name: "Block Non-Public or Insider Info Requests"
+    description: |
+      Prevents requests for non-public, proprietary, or insider information,
+      which may violate securities laws and firm policy.
+    enabled: true
+    severity: HIGH
+    category: input_validation
+    matchers:
+      - type: user_input
+        field: content
+        regex: (?ix)
+          \b(non[- ]?public|insider|proprietary|confidential)\b.*\b(information|data)\b
+    action:
+      type: block
+      message: |
+        I’m sorry, but I can’t help with requests for non-public or insider information.
+
+  - id: IN-ILLEGAL-TRADING
+    name: "Block Illegal Trading Advice"
+    description: |
+      Blocks requests for advice on illegal or manipulative trading practices
+      (insider trading, pump-and-dump, wash trades, etc.).
+    enabled: true
+    severity: HIGH
+    category: input_validation
+    matchers:
+      - type: user_input
+        field: content
+        regex: (?ix)
+          \b(insider trading|market manipulation|pump and dump|wash trade)\b
+    action:
+      type: block
+      message: |
+        I’m sorry, but I can’t assist with requests relating to illegal trading practices.
+
+  - id: IN-LEGAL-ADVICE-REQUEST
+    name: "Block Legal Advice Requests"
+    description: |
+      Prevents users from requesting legal advice and directs them to the
+      firm’s legal department.
+    enabled: true
+    severity: HIGH
+    category: input_validation
+    matchers:
+      - type: user_input
+        field: content
+        regex: (?ix)
+          \b(legal\s+advice|legal\s+question|attorney|lawyer)\b
+    action:
+      type: block
+      message: |
+        Note: You should contact Fisher Investments Legal office for questions like this.
+
+  - id: IN-FRAUD-REQUEST
+    name: "Block Fraudulent Activity Requests"
+    description: |
+      Detects and blocks any user request seeking assistance with fraudulent,
+      illicit, or deceptive activities (e.g., scams, money laundering, phishing).
+    enabled: true
+    severity: HIGH
+    category: input_validation
+    matchers:
+      - type: user_input
+        field: content
+        regex: (?ix)\b(fraud|scam|phish|money laundering|illegal|deceptive practice)\b
+    action:
+      type: block
+      message: |
+        I’m sorry, but I can’t help with that.
+
+  - id: IN-EMAIL-CLIENT-INFO
+    name: "Block Email Composition Containing Client Info"
+    description: |
+      Prevents drafting of emails or other communications that embed
+      confidential client information (e.g., account numbers, personal data).
+    enabled: true
+    severity: HIGH
+    category: input_validation
+    matchers:
+      - type: user_input
+        field: content
+        regex: (?ix)
+          \b(email|e-mail|compose|draft)\b
+          .{0,50}?
+          \b(client\s+(information|data|details|account))\b
+    action:
+      type: block
+      message: |
+        I’m sorry, but I cannot draft communications that include confidential client information.
+
+  - id: IN-TRADE-EXECUTION
+    name: "Block Automated Trade Execution Requests"
+    description: |
+      Prevents users from requesting execution of trades or placement of orders
+      outside of official trading systems.
+    enabled: true
+    severity: HIGH
+    category: input_validation
+    matchers:
+      - type: user_input
+        field: content
+        regex: (?ix)\b(execute|place|submit).{0,20}\b(order|trade|transaction)\b
+    action:
+      type: block
+      message: |
+        I’m sorry, but I cannot execute trades or transactions. Please use the official trading platform.
+
+  - id: IN-CREDENTIAL-DISCLOSURE
+    name: "Block Requests for Credentials or API Keys"
+    description: |
+      Prevents sharing or requesting login credentials, API keys, tokens, or other secrets.
+    enabled: true
+    severity: HIGH
+    category: input_validation
+    matchers:
+      - type: user_input
+        field: content
+        regex: (?ix)\b(password|passwd|credential|token|API\s*key)\b
+    action:
+      type: block
+      message: |
+        I’m sorry, but I cannot process requests involving sharing of credentials or API keys.
+
+  - id: IN-GDPR-ERASURE-REQUEST
+    name: "Block GDPR-Style Data Erasure Requests"
+    description: |
+      Detects requests to delete or erase personal or client data, which must be handled via formal GDPR workflows.
+    enabled: true
+    severity: MEDIUM
+    category: compliance
+    matchers:
+      - type: user_input
+        field: content
+        regex: (?ix)\b(delete|erase|remove).{0,20}\b(personal|client).{0,20}\b(data|information)\b
+    action:
+      type: block
+      message: |
+        I’m sorry, but requests for deletion of personal data require a formal GDPR request. Please contact compliance.
+
+  - id: IN-HACK-REQUEST
+    name: "Block Unauthorized Hacking or Penetration Requests"
+    description: |
+      Blocks any request for hacking, unauthorized penetration testing, or exploit development.
+    enabled: true
+    severity: HIGH
+    category: input_validation
+    matchers:
+      - type: user_input
+        field: content
+        regex: (?ix)\b(hack|penetration|exploit|vulnerability\s*scan)\b
+    action:
+      type: block
+      message: |
+        I’m sorry, but I cannot assist with hacking or unauthorized security testing.
+
+  - id: IN-DEFAMATION-REQUEST
+    name: "Block Defamation or Harmful Rumor Spreading"
+    description: |
+      Prevents requests to draft or spread potentially defamatory content about individuals or entities.
+    enabled: true
+    severity: HIGH
+    category: content
+    matchers:
+      - type: user_input
+        field: content
+        regex: (?ix)\b(defame|slander|libel|rumor|allege)\b
+    action:
+      type: block
+      message: |
+        I’m sorry, but I cannot assist with defamatory or harmful rumors.
+
+  - id: IN-MKT-MANIPULATE-REQUEST
+    name: "Block Market Manipulation Advice Requests"
+    description: |
+      Blocks user requests for assistance or instructions on market
+      manipulation techniques (pump-and-dump, spoofing, layering).
+    enabled: true
+    severity: HIGH
+    category: input_validation
+    matchers:
+      - type: user_input
+        field: content
+        regex: (?ix)\b(?:pump\s*and\s*dump|spoofing|layering|front[- ]?running)\b
+    action:
+      type: block
+      message: |
+        I’m sorry, but I can’t assist with market manipulation advice.
+
+  # Exfiltration Policies
+  - id: EXF-THIRD-PARTY
+    name: "Detect Third-Party Service Exfiltration"
+    description: |
+      Flags HTTP(S) requests or processes contacting consumer or developer
+      cloud storage endpoints (S3, Azure Blob, GCS), common signs of data exfiltration.
+    enabled: true
+    severity: HIGH
+    category: exfiltration
+    matchers:
+      - type: http_request
+        field: url
+        regex: (?i)https?://(?:[a-z0-9.-]+)?(?:amazonaws\.com|blob\.core\.windows\.net|storage\.googleapis\.com)/(?:.*)
+      - type: process_command
+        regex: (?ix)\b(?:aws\s+s3\s+cp|rclone\s+s3|az\s+storage\s+blob\s+upload|gsutil\s+cp)\b
+
+  - id: EXF-DROPBOX
+    name: "Detect Dropbox Data Exfiltration"
+    description: |
+      Flags any HTTP(S) requests or processes contacting dropbox.com APIs
+      or user-content endpoints—common sign of ad hoc exfiltration.
+    enabled: true
+    severity: HIGH
+    category: exfiltration
+    matchers:
+      - type: http_request
+        field: url
+        regex: (?i)https?://(?:api\.)?dropbox\.com/(?:.*)
+      - type: process_command
+        regex: (?ix)\b(dropbox_uploader\.sh|dbxcli|rclone\s+dropbox)\b
+
+  - id: EXF-GDRIVE
+    name: "Detect Google Drive Exfiltration"
+    description: |
+      Flags HTTP(S) requests to drive.google.com or storage.googleapis.com,
+      indicating consumer-grade Google Drive usage.
+    enabled: true
+    severity: HIGH
+    category: exfiltration
+    matchers:
+      - type: http_request
+        field: url
+        regex: (?i)https?://(?:drive|docs|storage)\.google\.com/(?:.*)
+      - type: process_command
+        regex: (?ix)\b(rclone\s+drive|gdrive)\b
+
+  - id: EXF-ONEDRIVE
+    name: "Detect OneDrive Exfiltration"
+    description: |
+      Flags HTTP(S) calls to Microsoft consumer OneDrive or SharePoint file
+      APIs, a red flag for ad hoc exfiltration.
+    enabled: true
+    severity: HIGH
+    category: exfiltration
+    matchers:
+      - type: http_request
+        field: url
+        regex: (?i)https?://(?:[A-Za-z0-9-]+)\.sharepoint\.com/.*|https?://onedrive\.live\.com/.* 
+      - type: process_command
+        regex: (?ix)\b(rclone\s+onedrive)\b
+
+  - id: EXF-BOX
+    name: "Detect Box.com Exfiltration"
+    description: |
+      Flags HTTP(S) requests to box.com or api.box.com endpoints.
+    enabled: true
+    severity: HIGH
+    category: exfiltration
+    matchers:
+      - type: http_request
+        field: url
+        regex: (?i)https?://(?:api\.)?box\.com/.* 
+
+  - id: EXF-MEGA
+    name: "Detect Mega.nz Exfiltration"
+    description: |
+      Flags HTTP(S) calls to mega.nz—another common consumer file-sharing site.
+    enabled: true
+    severity: HIGH
+    category: exfiltration
+    matchers:
+      - type: http_request
+        field: url
+        regex: (?i)https?://(?:www\.)?mega\.nz/.* 
+      - type: process_command
+        regex: (?ix)\b(megacli|rclone\s+mega)\b
+
+  # Privacy Policies
+  - id: PRIV-LLM-PII-LEAK
+    name: "Prevent PII Leakage in LLM Responses"
+    description: |
+      Blocks any LLM response containing sensitive personal data patterns
+      (SSNs, credit card numbers, personal contact info).
+    enabled: true
+    severity: HIGH
+    category: privacy
+    matchers:
+      - type: llm_response
+        field: content
+        regex: (?x)
+          (\b\d{3}-\d{2}-\d{4}\b)        # SSN
+          |
+          (\b(?:\d[ -]*?){13,16}\b)       # Credit card
+          |
+          (\b\d{3}[.]\d{3}[.]\d{4}\b)      # Phone number
+          |
+          ([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})  # Email address
+    action:
+      type: block
+      message: |
+        I’m sorry, but I can’t share personal or sensitive information.
+
+  # Output Compliance Policies
+  - id: OUT-PRICE-PREDICTIONS
+    name: "Disallow Specific Future Price Predictions"
+    description: |
+      Detects and blocks responses that predict specific future price targets or
+      guarantee investment growth, which is disallowed.
+    enabled: true
+    severity: HIGH
+    category: compliance
+    matchers:
+      - type: llm_response
+        field: content
+        regex: (?ix)
+          \b(will|guarantee|guaranteed|expected)\b.*\b(return|profit|gain|value|price)\b.*\b\d+(\.\d+)?\b
+    action:
+      type: block
+      message: |
+        I’m sorry, but I can’t provide specific future price predictions or guaranteed returns.
+
+  - id: OUT-PERFORMANCE-HYPOTHETICAL
+    name: "Disallow Hypothetical Performance Projections"
+    description: |
+      Blocks responses that present hypothetical performance projections as factual advice.
+    enabled: true
+    severity: HIGH
+    category: compliance
+    matchers:
+      - type: llm_response
+        field: content
+        regex: (?ix)\b(hypothetical|scenario|projection)\b.*\b(return|growth|performance)\b
+    action:
+      type: block
+      message: |
+        I’m sorry, but I cannot provide hypothetical performance projections.
+
+  - id: OUT-SENSITIVE-DATA-LEAK
+    name: "Prevent Output of Sensitive Internal Data"
+    description: |
+      Blocks any response that would leak internal or proprietary information
+      (database schemas, logs, internal URLs, stack traces).
+    enabled: true
+    severity: HIGH
+    category: compliance
+    matchers:
+      - type: llm_response
+        field: content
+        regex: (?ix)\b(database\s+schema|internal\s+url|log\s+dump|stack\s+trace)\b
+    action:
+      type: block
+      message: |
+        I’m sorry, but I can’t share that internal information.
+
+  - id: OUT-PHISHING-LANGUAGE
+    name: "Detect Phishing-Like Email Content"
+    description: |
+      Flags outputs that resemble phishing (urgent credential prompts, misleading links).
+    enabled: true
+    severity: HIGH
+    category: compliance
+    matchers:
+      - type: llm_response
+        field: content
+        regex: (?ix)\b(verify your account|click here to update|urgent action required)\b
+    action:
+      type: block
+      message: |
+        I’m sorry, but I cannot provide content that may be used for phishing.
+
+  - id: OUT-MKT-MANIPULATE-ADVICE
+    name: "Block LLM from Suggesting Market Manipulation"
+    description: |
+      Prevents LLM responses that suggest or describe illicit market
+      manipulation techniques.
+    enabled: true
+    severity: HIGH
+    category: compliance
+    matchers:
+      - type: llm_response
+        field: content
+        regex: (?ix)\b(?:pump\s*and\s*dump|spoofing|layering|front[- ]?running)\b
+    action:
+      type: block
+      message: |
+        I’m sorry, but I cannot provide advice on market manipulation.
+
+  # Disclosure & Disclaimer Policies
+  - id: OUT-TAX-ADVICE-DISCLAIMER
+    name: "Append Tax Advice Disclaimer"
+    description: |
+      Appends a disclaimer emphasizing that the model is not a tax advisor and
+      recommending consultation with a qualified tax professional.
+    enabled: true
+    severity: INFO
+    category: disclosure
+    matchers:
+      - type: llm_response
+        field: content
+        regex: (?ix)\b(tax|IRS|capital gains|deductible|deduction|filing)\b
+    action:
+      type: append
+      text: |
+        NOTE: I am not a tax advisor. For tax-related advice, please consult a qualified tax professional.
+
+  - id: OUT-FOREIGN-MARKETS-DISCLAIMER
+    name: "Append Foreign Market Disclaimer"
+    description: |
+      Adds a reminder about additional risks and currency fluctuations when
+      investing in foreign stock markets.
+    enabled: true
+    severity: INFO
+    category: disclosure
+    matchers:
+      - type: llm_response
+        field: content
+        regex: (?ix)\b(foreign stock market|emerging market|international investment)\b
+    action:
+      type: append
+      text: |
+        NOTE: Investing in foreign stock markets involves additional risks, such as currency fluctuations and political instability.
+
+  - id: OUT-UNCERTAIN-REG-CITE
+    name: "Append Regulatory Citation Disclaimer"
+    description: |
+      Appends a disclaimer to any LLM response containing references to
+      laws, regulations, or regulatory sections to remind users to consult
+      official sources.
+    enabled: true
+    severity: INFO
+    category: disclosure
+    matchers:
+      - type: llm_response
+        field: content
+        regex: (?ix)
+          \b(Regulation\s*\d+(\.\d+)?|Section\s*\d+(\.\d+)?|Rule\s*\d+(\.\d+)?|
+            Investment\s+Company\s+Act|SEC\s+Rule)\b
+    action:
+      type: append
+      text: |
+        NOTE: This information is for general informational purposes only and is
+        not a substitute for professional regulatory or legal advice. Please
+        consult the official regulatory documents.
+

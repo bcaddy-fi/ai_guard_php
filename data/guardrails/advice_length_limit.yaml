@@ -1,0 +1,10 @@
+# version: 1.0.1
+guardrail:
+  name: advice_length_limit
+  description: Notify if advice exceeds a reasonable token length.
+  action: notify
+  rules:
+  - match: .*
+    type: regex
+    response: 'Notify if advice exceeds a reasonable token length. [Filtered by guardrail:
+      advice_length_limit]'

@@ -1,0 +1,10 @@
+# version: 1.0.2
+guardrail:
+  name: confidential_info_block
+  description: Prevent mention of internal or proprietary firm information.
+  action: block
+  rules:
+  - match: .*
+    type: regex
+    response: 'Prevent mention of internal or proprietary firm information. [Filtered
+      by guardrail: confidential_info_block]'

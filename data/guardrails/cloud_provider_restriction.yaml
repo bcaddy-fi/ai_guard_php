@@ -1,0 +1,10 @@
+# version: 1.0.0
+guardrail:
+  name: cloud_provider_restriction
+  description: Avoid references to unauthorized cloud platforms.
+  action: block
+  rules:
+  - match: .*
+    type: regex
+    response: 'Avoid references to unauthorized cloud platforms. [Filtered by guardrail:
+      cloud_provider_restriction]'

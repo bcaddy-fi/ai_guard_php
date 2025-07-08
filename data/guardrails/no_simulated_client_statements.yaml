@@ -1,0 +1,10 @@
+# version: 1.0.0
+guardrail:
+  name: no_simulated_client_statements
+  description: Do not create fake account statements or balances.
+  action: block
+  rules:
+  - match: .*
+    type: regex
+    response: 'Do not create fake account statements or balances. [Filtered by guardrail:
+      no_simulated_client_statements]'

@@ -1,0 +1,10 @@
+# version: 1.0.0
+guardrail:
+  name: bias_mitigation
+  description: Detect and log profiling based on race, age, gender or economic background.
+  action: log
+  rules:
+  - match: .*
+    type: regex
+    response: 'Detect and log profiling based on race, age, gender or economic background.
+      [Filtered by guardrail: bias_mitigation]'

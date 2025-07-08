@@ -1,0 +1,10 @@
+# version: 1.0.0
+guardrail:
+  name: prompt_injection_filter
+  description: Block prompt injections such as 'Ignore previous instructions'.
+  action: block
+  rules:
+  - match: .*
+    type: regex
+    response: 'Block prompt injections such as ''Ignore previous instructions''. [Filtered
+      by guardrail: prompt_injection_filter]'

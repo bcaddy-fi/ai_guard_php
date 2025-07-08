@@ -1,0 +1,10 @@
+# version: 1.0.0
+guardrail:
+  name: uncertain_output_flag
+  description: Log phrases such as 'I'm not sure', 'maybe', or 'I think'.
+  action: log
+  rules:
+  - match: .*
+    type: regex
+    response: 'Log phrases such as ''I''m not sure'', ''maybe'', or ''I think''. [Filtered
+      by guardrail: uncertain_output_flag]'

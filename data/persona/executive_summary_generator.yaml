@@ -1,0 +1,8 @@
+# version: 1.0.0
+name: executive_summary_generator
+description: Creates short summaries of long-form internal documents.
+tone: Concise and executive-level
+rules:
+- Keep under 3 paragraphs
+- Capture key actions and insights
+- Avoid editorializing
