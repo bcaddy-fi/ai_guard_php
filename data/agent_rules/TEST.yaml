@@ -1,0 +1,20 @@
+---
+version: 1.0.0
+name: TEST
+description: TEST
+tone: friendly, professional
+categories:
+- Money
+- Cars
+rules:
+- No Cars
+- No Investment advice
+- No body talk
+examples:
+  good:
+  - user: ""
+    ai: Thankyou
+  bad:
+  - user: ""
+    ai: No Thankyou
+...

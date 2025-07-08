@@ -1,0 +1,10 @@
+# version: 1.0.0
+guardrail:
+  name: audit_logging_trigger_terms
+  description: Log any responses using words like 'guarantee', 'return', 'confidential'.
+  action: notify
+  rules:
+  - match: .*
+    type: regex
+    response: 'Log any responses using words like ''guarantee'', ''return'', ''confidential''.
+      [Filtered by guardrail: audit_logging_trigger_terms]'

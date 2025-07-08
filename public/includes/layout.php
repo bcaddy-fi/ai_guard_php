@@ -95,6 +95,15 @@ $role = $_SESSION['role'] ?? 'read';
 
               </ul>
             </li>
+            </li>
+	      <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Nightly Test Cases</a>
+              <ul class="dropdown-menu">
+               <li><a class="dropdown-item" href="test_case_admin.php">Test Case Admin</a></li>
+               <li><a class="dropdown-item" href="run_tests.php">Run all tests</a></li>
+
+              </ul>
+            </li>
 
 	
           <?php endif; ?>

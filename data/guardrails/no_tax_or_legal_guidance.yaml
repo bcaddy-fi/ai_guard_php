@@ -1,0 +1,10 @@
+# version: 1.0.0
+guardrail:
+  name: no_tax_or_legal_guidance
+  description: Avoid giving any tax filing or legal interpretations.
+  action: block
+  rules:
+  - match: .*
+    type: regex
+    response: 'Avoid giving any tax filing or legal interpretations. [Filtered by
+      guardrail: no_tax_or_legal_guidance]'

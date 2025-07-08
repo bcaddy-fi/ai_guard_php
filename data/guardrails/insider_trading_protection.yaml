@@ -1,0 +1,10 @@
+# version: 1.0.0
+guardrail:
+  name: insider_trading_protection
+  description: Block any discussion of trading on non-public information.
+  action: block
+  rules:
+  - match: .*
+    type: regex
+    response: 'Block any discussion of trading on non-public information. [Filtered
+      by guardrail: insider_trading_protection]'

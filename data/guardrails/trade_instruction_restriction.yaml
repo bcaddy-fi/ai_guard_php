@@ -1,0 +1,10 @@
+# version: 1.0.0
+guardrail:
+  name: trade_instruction_restriction
+  description: Do not simulate or describe how to execute a financial trade.
+  action: block
+  rules:
+  - match: .*
+    type: regex
+    response: 'Do not simulate or describe how to execute a financial trade. [Filtered
+      by guardrail: trade_instruction_restriction]'

@@ -1,0 +1,10 @@
+# version: 1.0.0
+guardrail:
+  name: phishing_awareness_control
+  description: Block generation of phishing simulation content.
+  action: block
+  rules:
+  - match: .*
+    type: regex
+    response: 'Block generation of phishing simulation content. [Filtered by guardrail:
+      phishing_awareness_control]'

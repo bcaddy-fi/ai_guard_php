@@ -1,0 +1,10 @@
+# version: 1.0.0
+guardrail:
+  name: gdpr_data_privacy
+  description: Prevent sharing or referencing personally identifiable information.
+  action: block
+  rules:
+  - match: .*
+    type: regex
+    response: 'Prevent sharing or referencing personally identifiable information.
+      [Filtered by guardrail: gdpr_data_privacy]'

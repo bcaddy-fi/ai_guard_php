@@ -1,0 +1,9 @@
+# version: 1.0.0
+guardrail:
+  name: avoid_political_commentary
+  description: Log political commentary or speculation.
+  action: log
+  rules:
+  - match: .*
+    type: regex
+    response: 'Log political commentary or speculation. [Filtered by guardrail: avoid_political_commentary]'

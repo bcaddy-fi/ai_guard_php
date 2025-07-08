@@ -1,0 +1,10 @@
+# version: 1.0.0
+guardrail:
+  name: no_risk_rating_guesswork
+  description: Block assigning of credit or investment risk levels.
+  action: block
+  rules:
+  - match: .*
+    type: regex
+    response: 'Block assigning of credit or investment risk levels. [Filtered by guardrail:
+      no_risk_rating_guesswork]'

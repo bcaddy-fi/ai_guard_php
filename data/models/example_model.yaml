@@ -1,27 +1,25 @@
-# version: 1.0.0
-models:
-  - type: main
-    engine: nim
-    model: meta/llama-3.1-8b-instruct
-    parameters:
-      base_url: http://localhost:8000/v1
+# version: 1.0.1
+model:
+  name: ChatGPT 3.5 Example
+  engine: openai
+  model: gpt-3.5-turbo-instruct
 
-
+  # Example OpenAI model
   # - type: main
-  #   engine: openaimodels:
+  #   engine: openai
   #   model: gpt-3.5-turbo-instruct
 
-# models:
-#     - type: main
-#       engine: vertexai
-#       model: gemini-2.0-flash-lite
+  # Example VertexAI model
+  # - type: main
+  #   engine: vertexai
+  #   model: gemini-2.0-flash-lite
 
-# models:
-#   - type: main
-#     engine: ollama
-#     model: gemma2
-#     parameters:
-#       base_url: http://localhost:11434
+  # Example Ollama model
+  # - type: main
+  #   engine: ollama
+  #   model: gemma2
+  #   parameters:
+  #     base_url: http://localhost:11434
 
 actions:
   - type: custom
@@ -31,7 +29,7 @@ actions:
 rails:
   dialog:
     flows:
-      - default_flow    # Catch-all for all other messages
+      - default_flow  # Catch-all for all other messages
 
 prompts:
   - task: default_flow

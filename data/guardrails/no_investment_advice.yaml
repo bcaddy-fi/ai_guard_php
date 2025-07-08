@@ -1,0 +1,10 @@
+# version: 1.0.0
+guardrail:
+  name: no_investment_advice
+  description: Do not provide any stock, bond, or fund recommendations.
+  action: block
+  rules:
+  - match: .*
+    type: regex
+    response: 'Do not provide any stock, bond, or fund recommendations. [Filtered
+      by guardrail: no_investment_advice]'

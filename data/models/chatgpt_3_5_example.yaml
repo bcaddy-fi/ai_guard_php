@@ -1,5 +1,7 @@
-# version: 1.0.1
-models:
- - type: main
-   engine: openai
-   model: gpt-3.5-turbo-instruct
+# version: 1.0.3
+---
+model:
+  name: ChatGPT 3.5 Example
+  engine: openai
+  model: gpt-3.5-turbo
+    

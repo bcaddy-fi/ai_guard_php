@@ -1,0 +1,10 @@
+# version: 1.0.0
+guardrail:
+  name: respectful_client_tone
+  description: Notify if tone becomes condescending or combative.
+  action: notify
+  rules:
+  - match: .*
+    type: regex
+    response: 'Notify if tone becomes condescending or combative. [Filtered by guardrail:
+      respectful_client_tone]'
