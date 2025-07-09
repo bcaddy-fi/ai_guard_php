@@ -18,11 +18,11 @@ if (!$test) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $input = $_POST['input_text'] ?? '';
-  $expected = $_POST['expected_behavior'] ?? '';
+  $input = $_POST['input'] ?? '';
+  $expected = $_POST['expected_output'] ?? '';
   $notes = $_POST['notes'] ?? '';
 
-  $update = $pdo->prepare("UPDATE test_cases SET input_text = ?, expected_behavior = ?, notes = ? WHERE id = ?");
+  $update = $pdo->prepare("UPDATE test_cases SET input = ?, expected_output = ?, notes = ?, updated_at = NOW() WHERE id = ?");
   $update->execute([$input, $expected, $notes, $id]);
   header("Location: test_case_admin.php");
   exit;
@@ -35,15 +35,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <form method="POST" class="card p-4 shadow-sm bg-light">
     <div class="mb-3">
       <label class="form-label">Prompt</label>
-      <textarea name="input_text" class="form-control" rows="3" required><?= htmlspecialchars($test['input_text']) ?></textarea>
+      <textarea name="input" class="form-control" rows="3" required><?= htmlspecialchars($test['input'] ?? '') ?></textarea>
     </div>
     <div class="mb-3">
-      <label class="form-label">Expected Behavior</label>
-      <textarea name="expected_behavior" class="form-control" rows="3" required><?= htmlspecialchars($test['expected_behavior']) ?></textarea>
+      <label class="form-label">Expected Output</label>
+      <textarea name="expected_output" class="form-control" rows="3" required><?= htmlspecialchars($test['expected_output'] ?? '') ?></textarea>
     </div>
     <div class="mb-3">
       <label class="form-label">Notes</label>
-      <textarea name="notes" class="form-control" rows="2"><?= htmlspecialchars($test['notes']) ?></textarea>
+      <textarea name="notes" class="form-control" rows="2"><?= htmlspecialchars($test['notes'] ?? '') ?></textarea>
     </div>
     <button type="submit" class="btn btn-primary">Save Changes</button>
     <a href="test_case_admin.php" class="btn btn-secondary ms-2">Cancel</a>

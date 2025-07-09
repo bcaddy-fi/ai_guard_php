@@ -1,5 +1,5 @@
 <?php
-require_once 'includes/waf.php'; // WAF protection
+#require_once 'includes/waf.php'; // WAF protection
 session_start();
 
 // If already logged in, redirect
@@ -47,7 +47,7 @@ $error = $_GET['error'] ?? '';
         </form>
 
         <div class="mt-3 text-center">
-         <a href="sso_login.php" class="btn btn-outline-primary w-100 mb-2">Login with SSO</a>        </div>
+        <!-- <a href="sso_login.php" class="btn btn-outline-primary w-100 mb-2">Login with SSO</a>   -->     </div>
       </div>
     </div>
   </div>

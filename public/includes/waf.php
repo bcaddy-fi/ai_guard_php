@@ -7,12 +7,17 @@ if (empty($config['enabled'])) return;
 require_once __DIR__ . '/../../app/controllers/db.php';
 $pdo = $pdo ?? null;
 
-$ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+// --- Real IP Resolution ---
+$ip = '0.0.0.0';
+if (!empty($config['use_x_real_ip']) && !empty($_SERVER['HTTP_X_REAL_IP'])) {
+    $ip = $_SERVER['HTTP_X_REAL_IP'];
+} else {
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+}
+
 $path = $_SERVER['REQUEST_URI'] ?? '';
 $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
 $country = getCountryByIP($ip);
-
-// --- Allow if CAPTCHA previously passed ---
 
 // --- Helpers ---
 function log_waf_denial($ip, $country, $reason, $path, $ua) {
@@ -69,6 +74,7 @@ if (!empty($config['rate_limit_enabled']) && $denialCount >= 3) {
         respond_waf_block("Too many requests. Try again later.");
     }
 }
+
 // --- IP restrictions ---
 $ipList = $config['block_ips'] ?? [];
 if ($config['ip_mode'] === 'allow_all_except' && in_array($ip, $ipList)) {

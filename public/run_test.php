@@ -2,9 +2,10 @@
 require __DIR__ . '/../app/controllers/auth.php';
 require_login();
 require_role('admin');
+require_once 'includes/waf.php'; // WAF protection
 
-require __DIR__ . '/../app/controllers/db.php'; // Provides $pdo
-require __DIR__ . '/../app/llm/test_runner.php'; // Provides run_llm_test()
+require __DIR__ . '/../app/controllers/db.php';       // $pdo
+require __DIR__ . '/../app/llm/test_runner.php';     // run_llm_test()
 
 header('Content-Type: application/json');
 
@@ -29,41 +30,55 @@ if (!$testCase) {
     exit;
 }
 
-// Get YAML
 $type = $testCase['type'];
 $refId = (int) $testCase['reference_id'];
 $filename = '';
-if ($type === 'persona') {
-    $stmt = $pdo->prepare("SELECT name FROM personas WHERE id = ?");
-    $stmt->execute([$refId]);
-    $name = $stmt->fetchColumn();
-    if ($name) {
-        $filename = realpath(__DIR__ . '/../data/persona/' . $name . '.yaml');
-    }
-} elseif ($type === 'guardrail') {
-    $stmt = $pdo->prepare("SELECT name FROM guardrails WHERE id = ?");
-    $stmt->execute([$refId]);
-    $name = $stmt->fetchColumn();
-    if ($name) {
-        $filename = realpath(__DIR__ . '/../data/guardrails/' . $name . '.yaml');
+$baseDir = __DIR__ . '/../data/';
+
+// Prefer explicit file metadata
+if (!empty($testCase['yaml_file']) && !empty($testCase['yaml_dir'])) {
+    $filename = realpath($baseDir . $testCase['yaml_dir'] . '/' . $testCase['yaml_file']);
+} else {
+    // Fallback to legacy DB lookup if yaml_file/yaml_dir not set
+    $lookupTable = '';
+    if ($type === 'persona') $lookupTable = 'personas';
+    elseif ($type === 'guardrail') $lookupTable = 'guardrails';
+    elseif ($type === 'model') $lookupTable = 'models';
+    elseif ($type === 'agent') $lookupTable = 'agents';
+
+    if ($lookupTable) {
+        $stmt = $pdo->prepare("SELECT yaml_file FROM $lookupTable WHERE id = ?");
+        $stmt->execute([$refId]);
+        $yamlFile = $stmt->fetchColumn();
+        if ($yamlFile) {
+            $defaultDir = match($type) {
+                'persona'   => 'personas',
+                'guardrail' => 'guardrails',
+                'model'     => 'models',
+                'agent'     => 'agent_rules',
+            };
+            $filename = realpath($baseDir . $defaultDir . '/' . $yamlFile);
+        }
     }
 }
 
+// Fail if no file found
 if (!$filename || !is_file($filename)) {
     echo json_encode(['success' => false, 'message' => 'YAML file not found.']);
     exit;
 }
 
+// Load YAML
 $yaml = file_get_contents($filename);
 if (!$yaml) {
     echo json_encode(['success' => false, 'message' => 'Failed to read YAML file.']);
     exit;
 }
 
-// Add YAML to test case array
+// Inject YAML into test case
 $testCase['yaml'] = $yaml;
 
-// Run the test
+// Run test
 try {
     $passed = run_llm_test($pdo, $testCase);
     echo json_encode([

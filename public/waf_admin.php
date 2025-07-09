@@ -11,7 +11,7 @@ $currentUser = $_SESSION['email'] ?? 'system';
 $configPath = __DIR__ . '/../config/waf_config.php';
 if (!file_exists($configPath)) {
     $error = "WAF configuration file not found.";
-    $config = []; // fallback so page doesn't crash
+    $config = [];
 } else {
     $config = require $configPath;
 
@@ -27,6 +27,7 @@ if (!file_exists($configPath)) {
             'rate_limit_enabled' => isset($_POST['rate_limit_enabled']),
             'json_response_enabled' => isset($_POST['json_response_enabled']),
             'captcha_enabled' => isset($_POST['captcha_enabled']),
+            'use_x_real_ip' => isset($_POST['use_x_real_ip']),
             'hcaptcha_site_key' => trim($_POST['hcaptcha_site_key'] ?? ''),
             'hcaptcha_secret_key' => trim($_POST['hcaptcha_secret_key'] ?? '')
         ];
@@ -96,7 +97,13 @@ ob_start();
         </div>
       </div>
 
-      <?php foreach (['block_sql_injection' => 'Block SQL Injection', 'block_xss' => 'Block XSS', 'rate_limit_enabled' => 'Enable Rate Limiting', 'json_response_enabled' => 'Enable JSON-Compatible API Responses'] as $key => $label): ?>
+      <?php foreach ([
+        'block_sql_injection' => 'Block SQL Injection',
+        'block_xss' => 'Block XSS',
+        'rate_limit_enabled' => 'Enable Rate Limiting',
+        'json_response_enabled' => 'Enable JSON-Compatible API Responses',
+        'use_x_real_ip' => 'Use HTTP_X_REAL_IP instead of REMOTE_ADDR'
+      ] as $key => $label): ?>
         <div class="form-check mb-2">
           <input class="form-check-input" type="checkbox" name="<?= $key ?>" id="<?= $key ?>" <?= !empty($config[$key]) ? 'checked' : '' ?>>
           <label class="form-check-label" for="<?= $key ?>"><?= $label ?></label>
