@@ -1,0 +1,20 @@
+model:
+  name: gemini-1.5-pro
+  provider: Google DeepMind
+  version: '1.5'
+  context_window: 1048576
+  description: Google Gemini 1.5 Pro with multimodal input and long-context processing.
+  use_cases:
+  - document processing
+  - vision+text analysis
+  - chatbots
+  config:
+    temperature: 0.6
+    top_p: 0.9
+    frequency_penalty: 0.2
+    presence_penalty: 0.1
+  compliance:
+    gdpr: true
+    ccpa: true
+    nist_800_53: false
+    eu_ai_act: limited-risk

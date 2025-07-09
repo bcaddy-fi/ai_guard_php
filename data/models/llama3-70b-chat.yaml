@@ -1,0 +1,21 @@
+model:
+  name: llama3-70b-chat
+  provider: Meta
+  version: '3.0'
+  context_window: 8192
+  description: "Meta\u2019s LLaMA 3 70B chat model optimized for safe and aligned\
+    \ responses."
+  use_cases:
+  - chatbots
+  - customer support
+  - training environments
+  config:
+    temperature: 0.65
+    top_p: 0.85
+    frequency_penalty: 0.1
+    presence_penalty: 0.2
+  compliance:
+    gdpr: depends on hosting
+    ccpa: depends on hosting
+    nist_800_53: false
+    eu_ai_act: application-dependent

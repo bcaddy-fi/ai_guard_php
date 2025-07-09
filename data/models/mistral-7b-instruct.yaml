@@ -1,0 +1,20 @@
+model:
+  name: mistral-7b-instruct
+  provider: Mistral
+  version: 7b
+  context_window: 32768
+  description: Open-weight instruction-tuned model suitable for local deployment.
+  use_cases:
+  - offline LLM
+  - fine-tuning
+  - developer tools
+  config:
+    temperature: 0.8
+    top_p: 0.92
+    frequency_penalty: 0.1
+    presence_penalty: 0.3
+  compliance:
+    gdpr: depends on usage
+    ccpa: depends on deployment
+    nist_800_53: false
+    eu_ai_act: application-dependent

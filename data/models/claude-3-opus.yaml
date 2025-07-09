@@ -1,0 +1,21 @@
+model:
+  name: claude-3-opus
+  provider: Anthropic
+  version: '3'
+  context_window: 100000
+  description: Anthropic Claude 3 Opus for long-context understanding and safety-aligned
+    outputs.
+  use_cases:
+  - summarization
+  - compliance analysis
+  - dialogue systems
+  config:
+    temperature: 0.5
+    top_p: 0.9
+    frequency_penalty: 0
+    presence_penalty: 0
+  compliance:
+    gdpr: true
+    ccpa: true
+    nist_800_53: true
+    eu_ai_act: high-risk

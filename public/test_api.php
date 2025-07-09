@@ -1,75 +1,82 @@
 <?php
 require __DIR__ . '/../app/controllers/auth.php';
 require_login();
+require __DIR__ . '/../app/controllers/db.php';
 
 header('Content-Type: application/json');
-
-// Log start
-file_put_contents('/tmp/api_debug_start.txt', "Script started at " . date('c') . "\n", FILE_APPEND);
-
-// Composer autoload
 require __DIR__ . '/../vendor/autoload.php';
 use Symfony\Component\Yaml\Yaml;
 
-// Gather inputs
-$personaYaml = $_POST['persona'] ?? '';
+// Log script start
+file_put_contents('/tmp/api_debug_start.txt', "Script started at " . date('c') . "\n", FILE_APPEND);
+
+// Input
+$type = $_POST['type'] ?? '';
 $filename = $_POST['filename'] ?? '';
+$yamlText = $_POST['yaml'] ?? '';
 $prompt = trim($_POST['prompt'] ?? '');
 
-// Log received POST data (excluding raw persona YAML for size)
+// Log input summary
 file_put_contents('/tmp/api_debug_post.txt', json_encode([
+    'type' => $type,
     'filename' => $filename,
     'prompt' => $prompt,
-    'has_persona' => $personaYaml ? true : false
+    'has_yaml' => $yamlText ? true : false
 ], JSON_PRETTY_PRINT));
 
-// Validate inputs
-if (!$prompt || (!$personaYaml && !$filename)) {
+// Validate
+if (!$prompt || (!$yamlText && !$filename)) {
     http_response_code(400);
-    echo json_encode(['error' => 'Missing prompt or persona content']);
+    echo json_encode(['error' => 'Missing prompt or YAML content']);
     exit;
 }
 
-// Load YAML file if not passed
-if (!$personaYaml && $filename) {
-    $safeFilename = basename($filename);
-    $filePath = __DIR__ . '/../data/persona/' . $safeFilename;
-    if (file_exists($filePath)) {
-        $personaYaml = file_get_contents($filePath);
-    } else {
-        http_response_code(404);
-        echo json_encode(['error' => 'Persona file not found']);
-        exit;
-    }
+// Resolve filename path
+$dirMap = [
+    'persona' => '/../data/persona/',
+    'guardrail' => '/../data/guardrails/',
+    'agent' => '/../data/agent_rules/',
+    'model' => '/../data/models/'
+];
+
+if (!isset($dirMap[$type])) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Unknown type']);
+    exit;
 }
 
-// Log raw YAML
-file_put_contents('/tmp/api_debug_yaml.txt', $personaYaml ?: 'EMPTY');
+if (!$yamlText && $filename) {
+    $path = __DIR__ . $dirMap[$type] . basename($filename);
+    if (!file_exists($path)) {
+        http_response_code(404);
+        echo json_encode(['error' => ucfirst($type) . ' file not found']);
+        exit;
+    }
+    $yamlText = file_get_contents($path);
+}
+
+file_put_contents('/tmp/api_debug_yaml.txt', $yamlText);
 
 // Parse YAML
 try {
-    $parsed = Yaml::parse($personaYaml);
+    $parsed = Yaml::parse($yamlText);
 } catch (Exception $e) {
-    file_put_contents('/tmp/api_debug_yaml_error.txt', $e->getMessage());
     http_response_code(500);
-    echo json_encode([
-        'error' => 'YAML parsing failed',
-        'details' => $e->getMessage()
-    ]);
+    echo json_encode(['error' => 'YAML parsing failed', 'details' => $e->getMessage()]);
     exit;
 }
 
-// Extract persona config
-$personaContext = $parsed['persona']['description'] ?? '';
-$rules = implode("\n", $parsed['persona']['rules'] ?? []);
-$fallback = $parsed['persona']['fallback_response'] ?? 'This request violates policy.';
-
-// Final assembled prompt
-$fullPrompt = <<<EOT
+// Build prompt
+switch ($type) {
+    case 'persona':
+        $context = $parsed['persona']['description'] ?? '';
+        $rules = implode("\n", $parsed['persona']['rules'] ?? []);
+        $fallback = $parsed['persona']['fallback_response'] ?? 'This request violates policy.';
+        $fullPrompt = <<<EOT
 You are acting as the following AI Persona:
 
 Context:
-$personaContext
+$context
 
 Rules:
 $rules
@@ -80,39 +87,81 @@ $fallback
 User Prompt:
 $prompt
 EOT;
+        break;
 
-// Save full prompt for review
+    case 'guardrail':
+        $trigger = implode("\n", $parsed['guardrail']['triggers'] ?? []);
+        $response = $parsed['guardrail']['response'] ?? 'This input violates policy.';
+        $fullPrompt = <<<EOT
+This is a guardrail test.
+
+Trigger Phrases:
+$trigger
+
+Expected Response:
+$response
+
+User Prompt:
+$prompt
+EOT;
+        break;
+
+    case 'agent':
+        $intro = $parsed['agent']['intro'] ?? 'AI agent';
+        $capabilities = implode("\n", $parsed['agent']['capabilities'] ?? []);
+        $rules = implode("\n", $parsed['agent']['rules'] ?? []);
+        $fullPrompt = <<<EOT
+You are an AI Agent: $intro
+
+Capabilities:
+$capabilities
+
+Rules:
+$rules
+
+User Prompt:
+$prompt
+EOT;
+        break;
+
+    case 'model':
+        $name = $parsed['model'] ?? 'Unknown';
+        $context = json_encode($parsed['metadataOverrides'] ?? [], JSON_PRETTY_PRINT);
+        $fullPrompt = <<<EOT
+You are testing the following LLM model: $name
+
+Metadata:
+$context
+
+Test Prompt:
+$prompt
+EOT;
+        break;
+}
+
 file_put_contents('/tmp/api_payload.json', json_encode(['prompt' => $fullPrompt], JSON_PRETTY_PRINT));
 
-// Extract API key from /etc/environment
+// API Key
 $apiKey = getenv('OPENAI_API_KEY');
-$envLines = @file('/etc/environment', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-foreach ($envLines as $line) {
+foreach (@file('/etc/environment', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
     if (str_starts_with(trim($line), 'OPENAI_API_KEY=')) {
         $apiKey = trim(explode('=', $line, 2)[1]);
         break;
     }
 }
-
-// Save key to verify
-file_put_contents('/tmp/api_key.txt', $apiKey ?: 'MISSING KEY');
-
 if (!$apiKey) {
     http_response_code(500);
-    echo json_encode(['error' => 'OPENAI_API_KEY not found in /etc/environment']);
+    echo json_encode(['error' => 'OPENAI_API_KEY not set']);
     exit;
 }
 
-// Prepare API payload
+// Call OpenAI
 $payload = json_encode([
     'model' => 'gpt-4',
-    'messages' => [
-        ['role' => 'user', 'content' => $fullPrompt]
-    ],
+    'messages' => [['role' => 'user', 'content' => $fullPrompt]],
     'temperature' => 0.7
 ]);
 
-// Call OpenAI API
 $ch = curl_init("https://api.openai.com/v1/chat/completions");
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
@@ -124,50 +173,38 @@ curl_setopt_array($ch, [
     CURLOPT_POSTFIELDS => $payload
 ]);
 
-$result = curl_exec($ch);
+$response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 $error = curl_error($ch);
 curl_close($ch);
+file_put_contents('/tmp/api_response.json', $response ?: 'NO RESPONSE');
 
-// Log raw API response
-file_put_contents('/tmp/api_response.json', $result ?: 'NO RESPONSE');
-
-// Error handling
-if (!$result) {
+if (!$response) {
     http_response_code(500);
     echo json_encode(['error' => 'OpenAI call failed', 'details' => $error]);
     exit;
 }
 if ($httpCode >= 400) {
     http_response_code($httpCode);
-    echo json_encode(['error' => "OpenAI returned HTTP $httpCode", 'details' => $result]);
+    echo json_encode(['error' => "OpenAI returned HTTP $httpCode", 'details' => $response]);
     exit;
 }
 
-// Echo result to frontend
-echo $result;
+echo $response;
 
-// Parse response for logging
-$responseData = json_decode($result, true);
-$responseText = $responseData['choices'][0]['message']['content'] ?? null;
+// Parse + log
+$data = json_decode($response, true);
+$text = $data['choices'][0]['message']['content'] ?? 'NO OUTPUT';
 
-// --- DB Logging ---
-require __DIR__ . '/../app/controllers/db.php';
-
-if ($responseText) {
-    try {
-        $stmt = $pdo->prepare("INSERT INTO api_log (user, filename, policy_type, prompt, response) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([
-            $_SESSION['user_id'] ?? 'unknown',
-            $filename,
-            'persona',
-            $prompt,
-            $responseText
-        ]);
-        file_put_contents('/tmp/api_log_success.txt', "Logged at " . date('c') . "\n", FILE_APPEND);
-    } catch (Exception $e) {
-        file_put_contents('/tmp/api_log_error.txt', $e->getMessage() . "\n", FILE_APPEND);
-    }
-} else {
-    file_put_contents('/tmp/api_log_error.txt', "Missing response text\n", FILE_APPEND);
+try {
+    $stmt = $pdo->prepare("INSERT INTO api_log (user, filename, policy_type, prompt, response) VALUES (?, ?, ?, ?, ?)");
+    $stmt->execute([
+        $_SESSION['user_id'] ?? 'unknown',
+        $filename,
+        $type,
+        $prompt,
+        $text
+    ]);
+} catch (Exception $e) {
+    file_put_contents('/tmp/api_log_error.txt', $e->getMessage());
 }

@@ -4,9 +4,10 @@ require_login();
 require __DIR__ . '/../app/controllers/db.php';
 require_role('admin');
 require_once 'includes/waf.php'; // WAF protection
+ob_start();
+
 $success = '';
 $error = '';
-
 $currentUser = $_SESSION['email'] ?? 'system';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['settings'])) {
@@ -32,14 +33,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['settings'])) {
 
 $stmt = $pdo->query("SELECT * FROM app_settings ORDER BY setting_key ASC");
 $settings = $stmt->fetchAll(PDO::FETCH_ASSOC);
-$settingMap = [];
-foreach ($settings as $s) {
-    $settingMap[$s['setting_key']] = $s;
-}
 
 $auditLogStmt = $pdo->prepare("SELECT * FROM audit_log WHERE target_table = 'app_settings' ORDER BY timestamp DESC LIMIT 50");
 $auditLogStmt->execute();
 $auditEntries = $auditLogStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Optional OpenAI key test
 $openai_test_result = '';
 if (isset($_GET['test_openai'])) {
     $apiKey = getenv('OPENAI_API_KEY');
@@ -62,57 +61,26 @@ if (isset($_GET['test_openai'])) {
         $openai_test_result = '<div class="alert alert-warning"><i class="fa fa-info-circle"></i> Unexpected response from OpenAI API (HTTP ' . $httpCode . ').</div>';
     }
 }
-
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Admin Console - App Settings</title>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body { padding-top: 70px; }
-  </style>
-</head>
-<body class="bg-light">
+<div class="container">
+  <h2 class="mb-4"><i class="fa fa-gears"></i> Admin Console - Application Settings</h2>
 
-<!-- Top Navigation Bar -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top shadow">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="dashboard.php"><img src="https://guard-manager.isms-cloud.com/aiguardmanager.png" width="110" height="35"></a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNavDropdown">
-      <ul class="navbar-nav ms-auto">
-        <li class="nav-item">
-          <a class="nav-link" href="dashboard.php"><i class="fa fa-home"></i> Dashboard</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link active" href="admin_console.php"><i class="fa fa-gears"></i> Admin Console</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="logout.php"><i class="fa fa-sign-out-alt"></i> Logout</a>
-        </li>
-      </ul>
-    </div>
-  </div>
-</nav>
-<h4><i class="fa fa-vial"></i> Test OpenAI Key</h4>
-<a href="admin_console.php?test_openai=1" class="btn btn-outline-primary mb-3"><i class="fa fa-play-circle"></i> Run OpenAI Key Test</a>
-<?= $openai_test_result ?>
-<div class="container py-4"><br><br><br>
-  <h2 class="mb-4"><i class="fa fa-gears"></i> Application Settings</h2>
+<a href="admin_console.php?test_openai=1" class="btn btn-outline-primary mb-3">
+  <i class="fa fa-play-circle"></i> Run OpenAI Key Test
+</a>
+
+<button type="button" class="btn btn-outline-secondary mb-3" onclick="openInstallChecker()">
+  <i class="fa fa-tools"></i> Check PHP and System
+</button>  <?= $openai_test_result ?>
 
   <?php if ($success): ?>
-    <div class="alert alert-success"><i class="fa fa-check-circle"></i> <?= htmlspecialchars($success) ?></div>
+    <div class="alert alert-success"><?= htmlspecialchars($success) ?></div>
   <?php elseif ($error): ?>
-    <div class="alert alert-danger"><i class="fa fa-times-circle"></i> <?= htmlspecialchars($error) ?></div>
+    <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
   <?php endif; ?>
 
-  <form method="post" class="card p-4 shadow-sm bg-white">
+  <form method="post" class="card p-4 shadow-sm bg-white mb-5">
     <?php foreach ($settings as $row): ?>
       <div class="mb-3">
         <label class="form-label"><strong><?= htmlspecialchars($row['setting_key']) ?></strong></label>
@@ -134,9 +102,7 @@ if (isset($_GET['test_openai'])) {
     <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Save Changes</button>
   </form>
 
-  <hr class="my-5">
-
-  <h4><i class="fa fa-history"></i> Recent Setting Changes (Audit Log)</h4>
+  <h4><i class="fa fa-history"></i> Recent Setting Changes</h4>
   <table class="table table-striped table-bordered mt-3">
     <thead class="table-light">
       <tr>
@@ -158,9 +124,30 @@ if (isset($_GET['test_openai'])) {
     </tbody>
   </table>
 </div>
+<!-- Modal for Install Checker -->
+<div class="modal fade" id="installModal" tabindex="-1" aria-labelledby="installModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fa fa-server"></i> System Requirements Check</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0">
+        <iframe id="installFrame" src="" width="100%" height="600" frameborder="0"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
 
-<?php include 'install_checker.php'; ?>
+<script>
+function openInstallChecker() {
+  const modal = new bootstrap.Modal(document.getElementById('installModal'));
+  document.getElementById('installFrame').src = 'install_checker.php';
+  modal.show();
+}
+</script>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<?php
+$content = ob_get_clean();
+include 'includes/layout.php';
+?>
