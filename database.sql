@@ -351,11 +351,6 @@ CREATE TABLE IF NOT EXISTS `users` (
   UNIQUE KEY `username` (`username`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dumping data for table ai_guard_manager.users: ~3 rows (approximately)
-INSERT INTO `users` (`id`, `username`, `password`, `email`, `created_at`, `use_sso`, `sso_id`, `role`, `last_login`) VALUES
-	(1, 'bcaddy', '$2y$10$0TgKrxEZYwK/XkfAhC2omOkdP/gPxA4Qd7ixbVZxq/kAKOhkLDv4S', 'b.caddy@fi.com', '2025-07-02 22:29:41', 0, NULL, 'admin', '2025-07-09 15:14:32'),
-	(2, 'csiebert', '$2y$10$iMRT/o.EjiJcVAg5ShbfgeDYovyzUOBNG3wkuuRyqFCwOKJrKXwSy', 'c.siebert@fi.com', '2025-07-03 16:10:50', 0, NULL, 'admin', NULL),
-	(3, 'sharteloo', '$2y$10$yYWrVI.hx3tjKT92vNoUmO32COJriAZ1.vGMC6phZIsgAtmr8S/9C', NULL, '2025-07-03 16:17:43', 0, NULL, 'admin', NULL);
 
 -- Dumping structure for table ai_guard_manager.waf_denials
 CREATE TABLE IF NOT EXISTS `waf_denials` (
