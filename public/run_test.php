@@ -2,95 +2,113 @@
 require __DIR__ . '/../app/controllers/auth.php';
 require_login();
 require_role('admin');
-require_once 'includes/waf.php'; // WAF protection
 
-require __DIR__ . '/../app/controllers/db.php';       // $pdo
-require __DIR__ . '/../app/llm/test_runner.php';     // run_llm_test()
+require_once 'includes/waf.php';
+require __DIR__ . '/../app/controllers/db.php';
 
-header('Content-Type: application/json');
+$testResult = '';
+$error = '';
+$testId = $_POST['id'] ?? '';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['success' => false, 'message' => 'Invalid request method.']);
-    exit;
-}
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $testId) {
+    // Fetch test case
+    $stmt = $pdo->prepare("SELECT * FROM test_cases WHERE id = ?");
+    $stmt->execute([$testId]);
+    $testCase = $stmt->fetch(PDO::FETCH_ASSOC);
 
-$testId = isset($_POST['id']) ? (int)$_POST['id'] : 0;
-if (!$testId) {
-    echo json_encode(['success' => false, 'message' => 'Missing test case ID.']);
-    exit;
-}
+    if (!$testCase) {
+        $error = "Test case not found.";
+    } else {
+        // Get YAML file content
+        $type = $testCase['type'];
+        $refId = (int) $testCase['reference_id'];
+        $filename = '';
+        $baseDir = __DIR__ . '/../data/';
 
-// Fetch test case
-$stmt = $pdo->prepare("SELECT * FROM test_cases WHERE id = ?");
-$stmt->execute([$testId]);
-$testCase = $stmt->fetch(PDO::FETCH_ASSOC);
-
-if (!$testCase) {
-    echo json_encode(['success' => false, 'message' => 'Test case not found.']);
-    exit;
-}
-
-$type = $testCase['type'];
-$refId = (int) $testCase['reference_id'];
-$filename = '';
-$baseDir = __DIR__ . '/../data/';
-
-// Prefer explicit file metadata
-if (!empty($testCase['yaml_file']) && !empty($testCase['yaml_dir'])) {
-    $filename = realpath($baseDir . $testCase['yaml_dir'] . '/' . $testCase['yaml_file']);
-} else {
-    // Fallback to legacy DB lookup if yaml_file/yaml_dir not set
-    $lookupTable = '';
-    if ($type === 'persona') $lookupTable = 'personas';
-    elseif ($type === 'guardrail') $lookupTable = 'guardrails';
-    elseif ($type === 'model') $lookupTable = 'models';
-    elseif ($type === 'agent') $lookupTable = 'agents';
-
-    if ($lookupTable) {
-        $stmt = $pdo->prepare("SELECT yaml_file FROM $lookupTable WHERE id = ?");
-        $stmt->execute([$refId]);
-        $yamlFile = $stmt->fetchColumn();
-        if ($yamlFile) {
-            $defaultDir = match($type) {
-                'persona'   => 'personas',
+        if (!empty($testCase['yaml_file']) && !empty($testCase['yaml_dir'])) {
+            $filename = realpath($baseDir . $testCase['yaml_dir'] . '/' . $testCase['yaml_file']);
+        } else {
+            $lookupTable = match ($type) {
+                'persona' => 'personas',
                 'guardrail' => 'guardrails',
-                'model'     => 'models',
-                'agent'     => 'agent_rules',
+                'model' => 'models',
+                'agent' => 'agents',
+                default => '',
             };
-            $filename = realpath($baseDir . $defaultDir . '/' . $yamlFile);
+
+            if ($lookupTable) {
+                $stmt = $pdo->prepare("SELECT yaml_file FROM $lookupTable WHERE id = ?");
+                $stmt->execute([$refId]);
+                $yamlFile = $stmt->fetchColumn();
+                if ($yamlFile) {
+                    $defaultDir = match ($type) {
+                        'persona' => 'personas',
+                        'guardrail' => 'guardrails',
+                        'model' => 'models',
+                        'agent' => 'agent_rules',
+                    };
+                    $filename = realpath($baseDir . $defaultDir . '/' . $yamlFile);
+                }
+            }
+        }
+
+        if (!$filename || !is_file($filename)) {
+            $error = "YAML file not found.";
+        } else {
+            $yaml = file_get_contents($filename);
+            $prompt = $testCase['input_text'] ?? $testCase['input'] ?? '';
+
+            $postData = [
+                'type' => $type,
+                'filename' => basename($filename),
+                'prompt' => $prompt,
+                'yaml' => $yaml
+            ];
+
+            $ch = curl_init('https://guard-manager.isms-cloud.com/test_api.php');
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => http_build_query($postData),
+                CURLOPT_HTTPHEADER => ['Content-Type: application/x-www-form-urlencoded'],
+                CURLOPT_SSL_VERIFYPEER => false
+            ]);
+
+            $response = curl_exec($ch);
+            $err = curl_error($ch);
+            curl_close($ch);
+
+            if (!$response) {
+                $error = "API call failed: $err";
+            } else {
+                $testResult = $response;
+            }
         }
     }
 }
 
-// Fail if no file found
-if (!$filename || !is_file($filename)) {
-    echo json_encode(['success' => false, 'message' => 'YAML file not found.']);
-    exit;
-}
+include 'includes/layout.php';
+?>
 
-// Load YAML
-$yaml = file_get_contents($filename);
-if (!$yaml) {
-    echo json_encode(['success' => false, 'message' => 'Failed to read YAML file.']);
-    exit;
-}
+<div class="container mt-5">
+    <h2>Run LLM Test</h2>
 
-// Inject YAML into test case
-$testCase['yaml'] = $yaml;
+    <form method="POST">
+        <div class="mb-3">
+            <label for="id" class="form-label">Test Case ID</label>
+            <input type="number" class="form-control" name="id" required value="<?= htmlspecialchars($testId) ?>">
+        </div>
+        <button type="submit" class="btn btn-primary">Run Test</button>
+    </form>
 
-// Run test
-try {
-    $passed = run_llm_test($pdo, $testCase);
-    echo json_encode([
-        'success' => true,
-        'result' => $passed ? 'Pass' : 'Failed',
-        'message' => 'Test executed.',
-        'timestamp' => date('Y-m-d H:i:s')
-    ]);
-} catch (Throwable $e) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Test error: ' . $e->getMessage()
-    ]);
-}
-exit;
+    <?php if ($error): ?>
+        <div class="alert alert-danger mt-3"><?= htmlspecialchars($error) ?></div>
+    <?php elseif ($testResult): ?>
+        <div class="mt-4">
+            <label for="result" class="form-label">Test Output</label>
+            <textarea id="result" class="form-control" rows="20"><?= htmlspecialchars($testResult) ?></textarea>
+        </div>
+    <?php endif; ?>
+</div>
+
+<?php include 'includes/footer.php'; ?>

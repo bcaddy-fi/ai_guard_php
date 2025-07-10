@@ -1,6 +1,7 @@
 <?php
 #require_once 'includes/waf.php'; // WAF protection
 session_start();
+require __DIR__ . '/../app/controllers/db.php';
 
 // If already logged in, redirect
 if (isset($_SESSION['user_id'])) {
@@ -9,6 +10,11 @@ if (isset($_SESSION['user_id'])) {
 }
 
 $error = $_GET['error'] ?? '';
+
+// Fetch enabled SSO providers
+$stmt = $pdo->prepare("SELECT * FROM sso_settings WHERE enabled = 1 ORDER BY provider_name ASC");
+$stmt->execute();
+$ssoProviders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -46,8 +52,23 @@ $error = $_GET['error'] ?? '';
           <button type="submit" class="btn btn-primary w-100">Login</button>
         </form>
 
-        <div class="mt-3 text-center">
-        <!-- <a href="sso_login.php" class="btn btn-outline-primary w-100 mb-2">Login with SSO</a>   -->     </div>
+        <?php if (!empty($ssoProviders)): ?>
+        <div class="mt-4">
+          <hr>
+          <h6 class="text-center mb-3">Or login with SSO</h6>
+          <?php foreach ($ssoProviders as $provider): ?>
+            <a href="/sso_login.php?provider=<?= urlencode(strtolower($provider['provider_name'])) ?>"
+               class="btn btn-outline-dark w-100 mb-2 d-flex align-items-center justify-content-start">
+              <?php if (!empty($provider['icon_url'])): ?>
+                <img src="<?= htmlspecialchars($provider['icon_url']) ?>" alt="<?= htmlspecialchars($provider['provider_name']) ?> icon"
+                     style="width: 20px; height: 20px; margin-right: 10px;">
+              <?php endif; ?>
+              <?= htmlspecialchars($provider['provider_name']) ?> Login
+            </a>
+          <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
       </div>
     </div>
   </div>

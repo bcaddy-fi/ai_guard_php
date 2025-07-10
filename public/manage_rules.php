@@ -83,7 +83,7 @@ ob_start();
                         <td><?= htmlspecialchars($rule['mtime']) ?></td>
                         <td>
                             <a href="edit_raw_yaml.php?file=<?= urlencode($rule['filename']) ?>" class="btn btn-sm btn-warning">Raw Edit</a>
-                            <a href="test_agent.php?type=agent&name=<?= urlencode($rule['filename']) ?>" class="btn btn-sm btn-success">Test</a>
+                            <a href="yaml_tester.php?type=agent&name=<?= urlencode($rule['filename']) ?>" class="btn btn-sm btn-success">Test</a>
                             <a href="download_rule.php?type=agent&name=<?= urlencode($rule['filename']) ?>" class="btn btn-sm btn-secondary">Download</a>
                             <a href="yaml_history.php?file=<?= urlencode($rule['filename']) ?>&type=agent" class="btn btn-sm btn-warning">History</a>
                          

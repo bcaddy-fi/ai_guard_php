@@ -59,7 +59,6 @@ $role = $_SESSION['role'] ?? 'read';
                 <li><a class="dropdown-item" href="manage_personas.php">Manage Personas</a></li>
                 <li><a class="dropdown-item" href="persona_builder.php">Persona Wizard</a></li>
                 <li><a class="dropdown-item" href="persona_import.php">Persona Import</a></li>
-                <li><a class="dropdown-item" href="test_persona.php">Persona Test</a></li>
               </ul>
             </li>
 
@@ -70,7 +69,6 @@ $role = $_SESSION['role'] ?? 'read';
                 <li><a class="dropdown-item" href="manage_guardrails.php">Manage Guardrails</a></li>
                 <li><a class="dropdown-item" href="guardrail_builder.php">Guardrail Wizard</a></li>
                 <li><a class="dropdown-item" href="guardrail_import.php">Guardrail Import</a></li>
-                <li><a class="dropdown-item" href="test_yamlfiles.php">Guardrail Test</a></li>
               </ul>
             </li>
 
@@ -80,7 +78,6 @@ $role = $_SESSION['role'] ?? 'read';
               <ul class="dropdown-menu">
                 <li><a class="dropdown-item" href="manage_models.php">Manage Models</a></li>
                 <li><a class="dropdown-item" href="model_builder.php">Model Wizard</a></li>
-                <li><a class="dropdown-item" href="test_yamlfiles.php">Model Test</a></li> 
               </ul>
             </li>
 
@@ -89,6 +86,7 @@ $role = $_SESSION['role'] ?? 'read';
               <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">AI Stats</a>
               <ul class="dropdown-menu">
                 <li><a class="dropdown-item" href="dashboard_analytics.php">Analytics</a></li>
+                <li><a class="dropdown-item" href="dashboard_openai.php">OpenAI API Calls</a></li>
               </ul>
             </li>
           <?php endif; ?>
@@ -112,6 +110,8 @@ $role = $_SESSION['role'] ?? 'read';
                 <li><a class="dropdown-item" href="user_admin.php">Admin - Users</a></li>
                 <li><a class="dropdown-item" href="admin_console.php">Admin - Console</a></li>
                 <li><a class="dropdown-item" href="waf_admin.php">Admin - WAF</a></li>
+                <li><a class="dropdown-item" href="sso_config.php">Admin - SSO/SAML</a></li>
+                <li><a class="dropdown-item" href="siem_setting.php">Admin - SIEM/Logging</a></li>
                 <li><a class="dropdown-item" href="bug_tracker.php">Admin - Bug Tracker</a></li>
               </ul>
             </li>

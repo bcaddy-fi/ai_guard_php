@@ -1,11 +1,23 @@
 <?php
 function log_yaml_edit(PDO $pdo, array $data): void {
+    $email = $data['email'] ?? ($_SESSION['email'] ?? 'unknown');
+    $username = $_SESSION['username'] ?? 'unknown';
+
+    // Ensure user exists
+    $check = $pdo->prepare("SELECT 1 FROM users WHERE email = ?");
+    $check->execute([$email]);
+    if (!$check->fetch()) {
+        $add = $pdo->prepare("INSERT INTO users (email, username, role) VALUES (?, ?, 'engineer')");
+        $add->execute([$email, $username]);
+    }
+
+    // Insert log
     $stmt = $pdo->prepare("INSERT INTO yaml_edit_log (
-        file_type, filename, user_email, edit_time, 
+        file_type, filename, email, username, edit_time, 
         version_before, version_after, diff_summary, diff_json, 
         action_taken, ip_address, user_agent, referer_url, test_run_ids, notes
     ) VALUES (
-        :file_type, :filename, :user_email, NOW(),
+        :file_type, :filename, :email, :username, NOW(),
         :version_before, :version_after, :diff_summary, :diff_json,
         :action_taken, :ip_address, :user_agent, :referer_url, :test_run_ids, :notes
     )");
@@ -13,7 +25,8 @@ function log_yaml_edit(PDO $pdo, array $data): void {
     $stmt->execute([
         ':file_type'       => $data['file_type'],
         ':filename'        => $data['filename'],
-        ':user_email'      => $data['user_email'],
+        ':email'           => $email,
+        ':username'        => $username,
         ':version_before'  => $data['version_before'],
         ':version_after'   => $data['version_after'],
         ':diff_summary'    => $data['diff_summary'],

@@ -1,9 +1,16 @@
 <?php
+// Debugging only (remove in production)
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// Core requirements
 require __DIR__ . '/../app/controllers/auth.php';
 require_login();
 require __DIR__ . '/../app/controllers/db.php';
 require_role('admin');
-require_once 'includes/waf.php'; // WAF protection
+require_once 'includes/waf.php';
+
 ob_start();
 
 $success = '';
@@ -12,6 +19,7 @@ $currentUser = $_SESSION['email'] ?? 'system';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['settings'])) {
     foreach ($_POST['settings'] as $key => $value) {
+        // Convert checkbox value for 'waf_enabled'
         if ($key === 'waf_enabled') {
             $value = $value === 'on' ? '1' : '0';
         }
@@ -31,14 +39,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['settings'])) {
     $success = "Settings updated successfully.";
 }
 
+// Fetch settings
 $stmt = $pdo->query("SELECT * FROM app_settings ORDER BY setting_key ASC");
 $settings = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Fetch recent audit log
 $auditLogStmt = $pdo->prepare("SELECT * FROM audit_log WHERE target_table = 'app_settings' ORDER BY timestamp DESC LIMIT 50");
 $auditLogStmt->execute();
 $auditEntries = $auditLogStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Optional OpenAI key test
+// Optional OpenAI test
 $openai_test_result = '';
 if (isset($_GET['test_openai'])) {
     $apiKey = getenv('OPENAI_API_KEY');
@@ -66,13 +76,15 @@ if (isset($_GET['test_openai'])) {
 <div class="container">
   <h2 class="mb-4"><i class="fa fa-gears"></i> Admin Console - Application Settings</h2>
 
-<a href="admin_console.php?test_openai=1" class="btn btn-outline-primary mb-3">
-  <i class="fa fa-play-circle"></i> Run OpenAI Key Test
-</a>
+  <a href="admin_console.php?test_openai=1" class="btn btn-outline-primary mb-3">
+    <i class="fa fa-play-circle"></i> Run OpenAI Key Test
+  </a>
 
-<button type="button" class="btn btn-outline-secondary mb-3" onclick="openInstallChecker()">
-  <i class="fa fa-tools"></i> Check PHP and System
-</button>  <?= $openai_test_result ?>
+  <button type="button" class="btn btn-outline-secondary mb-3" onclick="openInstallChecker()">
+    <i class="fa fa-tools"></i> Check PHP and System
+  </button>
+
+  <?= $openai_test_result ?>
 
   <?php if ($success): ?>
     <div class="alert alert-success"><?= htmlspecialchars($success) ?></div>
@@ -81,25 +93,32 @@ if (isset($_GET['test_openai'])) {
   <?php endif; ?>
 
   <form method="post" class="card p-4 shadow-sm bg-white mb-5">
-    <?php foreach ($settings as $row): ?>
-      <div class="mb-3">
-        <label class="form-label"><strong><?= htmlspecialchars($row['setting_key']) ?></strong></label>
-        <?php if ($row['setting_key'] === 'waf_enabled'): ?>
-          <div class="form-check form-switch">
-            <input class="form-check-input" type="checkbox" id="waf_enabled"
-                   name="settings[waf_enabled]" <?= $row['setting_value'] === '1' ? 'checked' : '' ?>>
-            <label class="form-check-label" for="waf_enabled">Enable Web Application Firewall</label>
-          </div>
-        <?php else: ?>
-          <input type="text" name="settings[<?= htmlspecialchars($row['setting_key']) ?>]"
-                 value="<?= htmlspecialchars($row['setting_value']) ?>" class="form-control">
-        <?php endif; ?>
-        <?php if ($row['description']): ?>
-          <small class="text-muted"><?= htmlspecialchars($row['description']) ?></small>
-        <?php endif; ?>
-      </div>
-    <?php endforeach; ?>
-    <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Save Changes</button>
+    <?php if (empty($settings)): ?>
+      <div class="alert alert-warning">No settings found in the database. Please check the <code>app_settings</code> table.</div>
+    <?php else: ?>
+      <?php foreach ($settings as $row): ?>
+        <div class="mb-3">
+          <label class="form-label"><strong><?= htmlspecialchars($row['setting_key']) ?></strong></label>
+
+          <?php if ($row['setting_key'] === 'waf_enabled'): ?>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="waf_enabled"
+                     name="settings[waf_enabled]" <?= $row['setting_value'] === '1' ? 'checked' : '' ?>>
+              <label class="form-check-label" for="waf_enabled">Enable Web Application Firewall</label>
+            </div>
+          <?php else: ?>
+            <input type="text" name="settings[<?= htmlspecialchars($row['setting_key']) ?>]"
+                   value="<?= htmlspecialchars($row['setting_value']) ?>" class="form-control">
+          <?php endif; ?>
+
+          <?php if (!empty($row['description'])): ?>
+            <small class="text-muted"><?= htmlspecialchars($row['description']) ?></small>
+          <?php endif; ?>
+        </div>
+      <?php endforeach; ?>
+
+      <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Save Changes</button>
+    <?php endif; ?>
   </form>
 
   <h4><i class="fa fa-history"></i> Recent Setting Changes</h4>
@@ -124,6 +143,7 @@ if (isset($_GET['test_openai'])) {
     </tbody>
   </table>
 </div>
+
 <!-- Modal for Install Checker -->
 <div class="modal fade" id="installModal" tabindex="-1" aria-labelledby="installModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-scrollable">

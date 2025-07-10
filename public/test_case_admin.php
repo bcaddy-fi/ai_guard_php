@@ -36,61 +36,69 @@ $cases = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <?php include 'includes/layout.php'; ?>
 <div class="container mt-4">
   <h2>Test Case Management</h2>
+
+  <form method="GET" class="mb-3">
+    <label for="type">Filter by Type:</label>
+    <select name="type" id="type" onchange="this.form.submit()" class="form-select form-select-sm d-inline-block w-auto ms-2">
+      <option value="">All</option>
+      <?php foreach ($allowed_types as $opt): ?>
+        <option value="<?= $opt ?>" <?= $type === $opt ? 'selected' : '' ?>><?= ucfirst($opt) ?></option>
+      <?php endforeach; ?>
+    </select>
+  </form>
+
   <a href="add_test_case.php" class="btn btn-sm btn-primary mb-3">Add New Test Case</a>
-  <table class="table table-bordered">
-<thead>
-  <tr>
-    <th>Type</th>
-    <th>Reference</th>
-    <th>YAML Path</th>
-    <th>Prompt</th>
-    <th>Expected Output</th>
-    <th>Notes</th>
-    <th>Last Result</th>
-    <th>Last Run</th>
-    <th>Created</th>
-    <th>Actions</th>
-  </tr>
-</thead>
-<tbody>
-  <?php foreach ($cases as $c): ?>
-    <tr>
-      <td><?= htmlspecialchars((string)($c['type'] ?? '')) ?></td>
-      <td><?= htmlspecialchars((string)($c['reference_name'] ?? '')) ?></td>
-      <td>
-        <?php 
-          if (!empty($c['yaml_dir']) && !empty($c['yaml_file'])) {
-              echo htmlspecialchars($c['yaml_dir'] . '/' . $c['yaml_file']);
-          } else {
-              echo '—';
-          }
-        ?>
-      </td>
-      <td><?= htmlspecialchars((string)($c['input'] ?? '')) ?></td>
-      <td><?= htmlspecialchars((string)($c['expected_output'] ?? '')) ?></td>
-      <td><?= htmlspecialchars((string)($c['notes'] ?? '')) ?></td>
-      <td>
-        <?php
-          if ($c['last_result'] === 'pass') echo '&#x2705; Pass';
-          elseif ($c['last_result'] === 'fail') echo '&#x274C; Fail';
-          elseif ($c['last_result'] === 'error') echo '&#9888;&#xFE0F; Error';
-          else echo '-';
-        ?>
-      </td>
-      <td><?= htmlspecialchars((string)($c['last_run'] ?? '—')) ?></td>
-      <td><?= htmlspecialchars((string)($c['created_at'] ?? '')) ?></td>
-      <td>
-        <form action="run_test.php" method="POST" style="display:inline-block;">
-          <input type="hidden" name="id" value="<?= $c['id'] ?>">
-          <button type="submit" class="btn btn-sm btn-success">Run Test</button>
-        </form>
-        <a href="edit_test_case.php?id=<?= $c['id'] ?>" class="btn btn-sm btn-secondary">Edit</a>
-        <a href="explain_output.php?id=<?= $c['id'] ?>" class="btn btn-sm btn-info" target="_blank" title="Explain">
-          <i class="fas fa-lightbulb"></i> Explain
-        </a>
-      </td>
-    </tr>
-  <?php endforeach; ?>
-</tbody>
+  <table class="table table-bordered table-sm align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Type</th>
+        <th>Reference</th>
+        <th>YAML Path</th>
+        <th>Prompt</th>
+        <th>Expected Output</th>
+        <th>Notes</th>
+        <th>Last Result</th>
+        <th>Last Run</th>
+        <th>Created</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <?php foreach ($cases as $c): ?>
+        <tr>
+          <td><?= htmlspecialchars($c['type']) ?></td>
+          <td><?= htmlspecialchars($c['reference_name'] ?? '') ?></td>
+          <td>
+            <?php 
+              echo (!empty($c['yaml_dir']) && !empty($c['yaml_file'])) 
+                ? htmlspecialchars($c['yaml_dir'] . '/' . $c['yaml_file']) 
+                : '—';
+            ?>
+          </td>
+          <td><?= nl2br(htmlspecialchars($c['input'])) ?></td>
+          <td><?= nl2br(htmlspecialchars($c['expected_output'])) ?></td>
+          <td><?= nl2br(htmlspecialchars($c['notes'])) ?></td>
+          <td>
+            <?php
+              echo match($c['last_result']) {
+                'pass' => '&#x2705; Pass',
+                'fail' => '&#x274C; Fail',
+                'error' => '&#9888;&#xFE0F; Error',
+                default => '-',
+              };
+            ?>
+          </td>
+          <td><?= htmlspecialchars($c['last_run'] ?? '—') ?></td>
+          <td><?= htmlspecialchars($c['created_at'] ?? '') ?></td>
+          <td>
+            <a href="edit_test_case.php?id=<?= $c['id'] ?>" class="btn btn-sm btn-secondary">Edit</a>
+            <a href="explain_output.php?id=<?= $c['id'] ?>" class="btn btn-sm btn-info" target="_blank" title="Explain">
+              <i class="fas fa-lightbulb"></i>
+            </a>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+    </tbody>
   </table>
 </div>
+<?php include 'includes/footer.php'; ?>

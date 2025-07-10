@@ -190,16 +190,20 @@ if ($httpCode >= 400) {
     exit;
 }
 
-echo $response;
-
-// Parse + log
 $data = json_decode($response, true);
 $text = $data['choices'][0]['message']['content'] ?? 'NO OUTPUT';
+$tokenUsage = $data['usage']['total_tokens'] ?? null;
 
+$userId = $_SESSION['user_id'] ?? null;
+$modelUsed = 'gpt-4';
+$status = $httpCode === 200 ? 'success' : 'error';
+$errorMessage = $httpCode === 200 ? null : "HTTP $httpCode: $response";
+
+// Log to legacy api_log
 try {
     $stmt = $pdo->prepare("INSERT INTO api_log (user, filename, policy_type, prompt, response) VALUES (?, ?, ?, ?, ?)");
     $stmt->execute([
-        $_SESSION['user_id'] ?? 'unknown',
+        $userId ?? 'unknown',
         $filename,
         $type,
         $prompt,
@@ -208,3 +212,42 @@ try {
 } catch (Exception $e) {
     file_put_contents('/tmp/api_log_error.txt', $e->getMessage());
 }
+
+// Log to openai_log for analytics
+try {
+    $stmt = $pdo->prepare("
+        INSERT INTO openai_log (
+            user_id, persona_name, guardrail_name, model_used,
+            prompt, response, token_usage, status, error_message,
+            temperature, max_tokens, top_p, frequency_penalty, presence_penalty
+        ) VALUES (
+            :user_id, :persona_name, :guardrail_name, :model_used,
+            :prompt, :response, :token_usage, :status, :error_message,
+            :temperature, :max_tokens, :top_p, :frequency_penalty, :presence_penalty
+        )
+    ");
+
+    $stmt->bindValue(':user_id', $userId ?? null, $userId ? PDO::PARAM_STR : PDO::PARAM_NULL);
+    $stmt->bindValue(':persona_name', $type === 'persona' ? $filename : null);
+    $stmt->bindValue(':guardrail_name', $type === 'guardrail' ? $filename : null);
+    $stmt->bindValue(':model_used', $modelUsed);
+    $stmt->bindValue(':prompt', $fullPrompt);
+    $stmt->bindValue(':response', $text);
+    $stmt->bindValue(':token_usage', $tokenUsage ?? null, is_numeric($tokenUsage) ? PDO::PARAM_INT : PDO::PARAM_NULL);
+    $stmt->bindValue(':status', $status);
+    $stmt->bindValue(':error_message', $errorMessage);
+    $stmt->bindValue(':temperature', 0.7);
+    $stmt->bindValue(':max_tokens', null, PDO::PARAM_NULL); // You can replace with actual value if used
+    $stmt->bindValue(':top_p', null, PDO::PARAM_NULL);
+    $stmt->bindValue(':frequency_penalty', null, PDO::PARAM_NULL);
+    $stmt->bindValue(':presence_penalty', null, PDO::PARAM_NULL);
+
+    $stmt->execute();
+
+    file_put_contents('/tmp/openai_log_success.txt', "Logged successfully\n", FILE_APPEND);
+} catch (Exception $e) {
+    file_put_contents('/tmp/openai_log_exception.txt', $e->getMessage(), FILE_APPEND);
+}
+
+// Echo the original response
+echo $response;

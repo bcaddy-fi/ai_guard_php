@@ -34,6 +34,7 @@ include 'includes/layout.php';
         <tr>
           <td><?= htmlspecialchars($file) ?></td>
           <td>
+            <a href="yaml_tester.php?name=<?= urlencode($file) ?>&type=guardrail" class="btn btn-sm btn-info">Test</a>
             <a href="edit_raw_yaml.php?file=<?= urlencode($file) ?>&type=guardrails" class="btn btn-sm btn-primary">Edit</a>
             <a href="delete_yaml.php?type=guardrails&file=<?= urlencode($file) ?>" class="btn btn-sm btn-danger" onclick="return confirmDelete('<?= htmlspecialchars($file) ?>')">Delete</a>
             <a href="download_yaml.php?type=guardrails&name=<?= urlencode($file) ?>" class="btn btn-sm btn-secondary">Download</a>

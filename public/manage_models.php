@@ -81,7 +81,7 @@ ob_start();
                         <td><?= htmlspecialchars($rule['mtime']) ?></td>
                         <td>
                             <a href="edit_raw_yaml.php?file=<?= urlencode($rule['filename']) ?>&type=model" class="btn btn-sm btn-warning">Raw Edit</a>
-                            <a href="test_model.php?file=<?= urlencode($rule['filename']) ?>" class="btn btn-sm btn-success">Test</a>
+                            <--!<a href="yaml_tester.php?name=<?= urlencode($rule['filename']) ?>&type=model" class="btn btn-sm btn-success">Test</a>--!
                             <a href="download_model.php?type=model&name=<?= urlencode($rule['filename']) ?>" class="btn btn-sm btn-secondary">Download</a>
                             <a href="delete_yaml.php?file=<?= urlencode($rule['filename']) ?>&type=model" class="btn btn-sm btn-danger" onclick="return confirmDelete('<?= htmlspecialchars($file) ?>')">Delete</a>
                             <a href="yaml_history.php?file=<?= urlencode($rule['filename']) ?>&type=model" class="btn btn-sm btn-warning">History</a>                        </td>

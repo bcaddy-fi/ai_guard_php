@@ -1,5 +1,5 @@
 <?php
-session_start();
+
 
 $config = require __DIR__ . '/../../config/waf_config.php';
 if (empty($config['enabled'])) return;

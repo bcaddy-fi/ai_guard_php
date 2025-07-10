@@ -1,116 +1,132 @@
 <?php
 require __DIR__ . '/../app/controllers/auth.php';
 require_login();
-require __DIR__ . '/../app/controllers/db.php';
-require_role('admin');
+$userRole = $_SESSION['role'] ?? '';
 
-// Query counts
-$counts = $pdo->query("SELECT 'guardrails' AS type, COUNT(*) AS count FROM guardrails
-  UNION ALL SELECT 'personas', COUNT(*) FROM personas
-  UNION ALL SELECT 'models', COUNT(*) FROM models")
-  ->fetchAll(PDO::FETCH_KEY_PAIR);
+if (!in_array($userRole, ['admin', 'engineer'])) {
+    http_response_code(403);
+    echo "Access denied. You must be an admin or engineer.";
+    exit;
+}require __DIR__ . '/../app/controllers/db.php';
 
-// Guardrail edits over last 30 days
-$editData = $pdo->query("SELECT DATE(edited_at) as date, COUNT(*) as count
-  FROM file_audit_log
-  WHERE filename LIKE 'guardrails/%' AND edited_at >= CURDATE() - INTERVAL 30 DAY
-  GROUP BY DATE(edited_at)")
-  ->fetchAll(PDO::FETCH_ASSOC);
+require_once __DIR__ . '/../app/helpers/yaml_dirs.php';
+$totalCalls = $successCalls = $failCalls = $totalTokens = 0;
+$topPersonas = $dailyTokens = [];
 
-$editLabels = array_column($editData, 'date');
-$editCounts = array_column($editData, 'count');
+$stmt = $pdo->query("SELECT COUNT(*) FROM openai_log");
+$totalCalls = $stmt->fetchColumn();
 
-// Bug status breakdown
-$bugData = $pdo->query("SELECT status, COUNT(*) as count FROM bug_tracker GROUP BY status")
-  ->fetchAll(PDO::FETCH_KEY_PAIR);
+$stmt = $pdo->query("SELECT COUNT(*) FROM openai_log WHERE status = 'success'");
+$successCalls = $stmt->fetchColumn();
 
+$stmt = $pdo->query("SELECT COUNT(*) FROM openai_log WHERE status != 'success'");
+$failCalls = $stmt->fetchColumn();
+
+$stmt = $pdo->query("SELECT SUM(token_usage) FROM openai_log");
+$totalTokens = $stmt->fetchColumn();
+
+$stmt = $pdo->query("
+    SELECT persona_name, COUNT(*) as total 
+    FROM openai_log 
+    WHERE persona_name IS NOT NULL 
+    GROUP BY persona_name 
+    ORDER BY total DESC 
+    LIMIT 5
+");
+$topPersonas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$stmt = $pdo->query("
+    SELECT DATE(timestamp) as day, SUM(token_usage) as tokens 
+    FROM openai_log 
+    WHERE timestamp > NOW() - INTERVAL 7 DAY 
+    GROUP BY day 
+    ORDER BY day
+");
+$dailyTokens = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$yamlTypes = ['persona', 'agent', 'guardrail', 'model'];
+$fileCounts = [];
+
+foreach ($yamlTypes as $type) {
+    $dir = get_yaml_directory($type);
+    $files = array_filter(scandir($dir), fn($f) => is_file($dir . $f) && str_ends_with($f, '.yaml'));
+    $fileCounts[$type] = count($files);
+}
+ob_start();
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Analytics Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body class="bg-light">
-<?php include 'layout.php'; ?>
-<div class="container py-4">
-  <h2 class="mb-4">Analytics Dashboard</h2>
 
-  <div class="row mb-4">
-    <div class="col-md-4">
-      <div class="card text-bg-primary mb-3">
-        <div class="card-body">
-          <h5 class="card-title">Guardrails</h5>
-          <p class="card-text fs-3"><?= $counts['guardrails'] ?? 0 ?></p>
-        </div>
+<div class="container mt-5">
+  <h2><i class="fa fa-chart-bar"></i> OpenAI Usage Dashboard</h2>
+
+  <div class="row g-4 mt-3">
+    <div class="col-md-3">
+      <div class="card p-3 shadow-sm">
+        <h6>Total API Calls</h6>
+        <h3><?= $totalCalls ?></h3>
       </div>
     </div>
-    <div class="col-md-4">
-      <div class="card text-bg-success mb-3">
-        <div class="card-body">
-          <h5 class="card-title">Personas</h5>
-          <p class="card-text fs-3"><?= $counts['personas'] ?? 0 ?></p>
-        </div>
+    <div class="col-md-3">
+      <div class="card p-3 shadow-sm">
+        <h6>Successful Calls</h6>
+        <h3 class="text-success"><?= $successCalls ?></h3>
       </div>
     </div>
-    <div class="col-md-4">
-      <div class="card text-bg-warning mb-3">
-        <div class="card-body">
-          <h5 class="card-title">Models</h5>
-          <p class="card-text fs-3"><?= $counts['models'] ?? 0 ?></p>
-        </div>
+    <div class="col-md-3">
+      <div class="card p-3 shadow-sm">
+        <h6>Failed Calls</h6>
+        <h3 class="text-danger"><?= $failCalls ?></h3>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3 shadow-sm">
+        <h6>Total Tokens Used</h6>
+        <h3><?= number_format($totalTokens) ?></h3>
       </div>
     </div>
   </div>
 
-  <div class="row">
-    <div class="col-md-6">
-      <div class="card mb-4">
-        <div class="card-header">Guardrail Edits (30 days)</div>
+  <hr class="my-4">
+
+  <ul class="list-group mb-4">
+    <?php foreach ($topPersonas as $row): ?>
+      <li class="list-group-item d-flex justify-content-between">
+        <span><?= htmlspecialchars($row['persona_name']) ?></span>
+        <span><?= $row['total'] ?> calls</span>
+      </li>
+    <?php endforeach; ?>
+  </ul>
+<h5>YAML Files under Management</h5>
+<div class="row mt-4">
+  <?php foreach ($fileCounts as $type => $count): ?>
+    <div class="col-md-3">
+      <div class="card text-center shadow-sm">
         <div class="card-body">
-          <canvas id="editChart"></canvas>
+          <h5 class="card-title text-capitalize"><?= htmlspecialchars($type) ?>s</h5>
+          <p class="display-6"><?= $count ?></p>
+          <p class="text-muted">YAML files in /data/<?= htmlspecialchars($type) ?>/</p>
         </div>
       </div>
     </div>
-    <div class="col-md-6">
-      <div class="card mb-4">
-        <div class="card-header">Bug Reports by Status</div>
-        <div class="card-body">
-          <canvas id="bugChart"></canvas>
-        </div>
-      </div>
-    </div>
-  </div>
+  <?php endforeach; ?>
+</div>
+  <br><h5>Token Usage (Last 7 Days)</h5>
+  <table class="table table-bordered">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Tokens Used</th>
+      </tr>
+    </thead>
+    <tbody>
+      <?php foreach ($dailyTokens as $row): ?>
+        <tr>
+          <td><?= htmlspecialchars($row['day']) ?></td>
+          <td><?= number_format($row['tokens']) ?></td>
+        </tr>
+      <?php endforeach; ?>
+    </tbody>
+  </table>
 </div>
 
-<script>
-const editChart = new Chart(document.getElementById('editChart'), {
-  type: 'line',
-  data: {
-    labels: <?= json_encode($editLabels) ?>,
-    datasets: [{
-      label: 'Edits',
-      data: <?= json_encode($editCounts) ?>,
-      borderColor: 'rgb(54, 162, 235)',
-      backgroundColor: 'rgba(54, 162, 235, 0.2)',
-      fill: true
-    }]
-  }
-});
-
-const bugChart = new Chart(document.getElementById('bugChart'), {
-  type: 'pie',
-  data: {
-    labels: <?= json_encode(array_keys($bugData)) ?>,
-    datasets: [{
-      label: 'Bugs',
-      data: <?= json_encode(array_values($bugData)) ?>,
-      backgroundColor: ['#f00', '#ffa500', '#28a745']
-    }]
-  }
-});
-</script>
-</body>
-</html>
+<?php
+$content = ob_get_clean();
+include 'includes/layout.php';

@@ -76,18 +76,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             array_keys($diff), $diff
         ));
 
-        log_yaml_edit($pdo, [
-            'file_type'       => $type,
-            'filename'        => $basename,
-            'user_email'      => $_SESSION['user']['email'] ?? 'unknown',
-            'version_before'  => $currentVersion,
-            'version_after'   => $newVersion,
-            'diff_summary'    => $summary,
-            'diff_json'       => $diff,
-            'action_taken'    => 'edit',
-            'test_run_ids'    => '',
-            'notes'           => 'Edited via raw YAML editor'
-        ]);
+log_yaml_edit($pdo, [
+    'file_type'       => $type,
+    'filename'        => $basename,
+    'email'           => $_SESSION['email'] ?? 'unknown',
+    'username'        => $_SESSION['username'] ?? 'unknown', 
+    'version_before'  => $currentVersion,
+    'version_after'   => $newVersion,
+    'diff_summary'    => $summary,
+    'diff_json'       => $diff,
+    'action_taken'    => 'edit',
+    'test_run_ids'    => '',
+    'notes'           => 'Edited via raw YAML editor'
+]);
 
         $success = "YAML saved successfully. Version updated to $newVersion.";
         $yamlContent = $finalYaml;

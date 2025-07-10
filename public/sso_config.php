@@ -1,8 +1,15 @@
 <?php
-require 'includes/auth.php';
+// Debugging only (remove in production)
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// Core requirements
+require __DIR__ . '/../app/controllers/auth.php';
 require_login();
+require __DIR__ . '/../app/controllers/db.php';
 require_role('admin');
-require 'includes/db.php';
+require_once 'includes/waf.php';
 
 $success = '';
 $error = '';
@@ -15,22 +22,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $client_id = trim($_POST['client_id']);
     $client_secret = trim($_POST['client_secret']);
     $redirect_uri = trim($_POST['redirect_uri']);
+    $icon_url = trim($_POST['icon_url'] ?? '');
     $enabled = isset($_POST['enabled']) ? 1 : 0;
 
     try {
         if ($enabled) {
-            $pdo->query("UPDATE sso_settings SET enabled = 0"); // Disable all
+            $pdo->query("UPDATE sso_settings SET enabled = 0"); // Only one active at a time
         }
 
         if ($id) {
-            // Update existing
-            $stmt = $pdo->prepare("UPDATE sso_settings SET provider_name=?, issuer_url=?, client_id=?, client_secret=?, redirect_uri=?, enabled=? WHERE id=?");
-            $stmt->execute([$provider_name, $issuer_url, $client_id, $client_secret, $redirect_uri, $enabled, $id]);
+            // Update
+            $stmt = $pdo->prepare("UPDATE sso_settings SET provider_name=?, issuer_url=?, client_id=?, client_secret=?, redirect_uri=?, icon_url=?, enabled=? WHERE id=?");
+            $stmt->execute([$provider_name, $issuer_url, $client_id, $client_secret, $redirect_uri, $icon_url, $enabled, $id]);
             $success = "Provider updated.";
         } else {
-            // Insert new
-            $stmt = $pdo->prepare("INSERT INTO sso_settings (provider_name, issuer_url, client_id, client_secret, redirect_uri, enabled) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$provider_name, $issuer_url, $client_id, $client_secret, $redirect_uri, $enabled]);
+            // Insert
+            $stmt = $pdo->prepare("INSERT INTO sso_settings (provider_name, issuer_url, client_id, client_secret, redirect_uri, icon_url, enabled) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$provider_name, $issuer_url, $client_id, $client_secret, $redirect_uri, $icon_url, $enabled]);
             $success = "Provider added.";
         }
     } catch (Exception $e) {
@@ -77,12 +85,16 @@ ob_start();
         <label class="form-label">Client Secret</label>
         <input type="text" name="client_secret" class="form-control" value="<?= htmlspecialchars($provider['client_secret']) ?>" required>
       </div>
+      <div class="col-md-8">
+        <label class="form-label">Icon URL</label>
+        <input type="url" name="icon_url" class="form-control" value="<?= htmlspecialchars($provider['icon_url']) ?>">
+      </div>
       <div class="col-md-2">
         <label class="form-label d-block">Enabled</label>
         <input type="checkbox" name="enabled" <?= $provider['enabled'] ? 'checked' : '' ?>>
       </div>
       <div class="col-md-2 d-flex align-items-end">
-        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="submit" class="btn btn-primary w-100">Save</button>
       </div>
     </div>
   </form>
@@ -112,15 +124,20 @@ ob_start();
       <label class="form-label">Client Secret</label>
       <input type="text" name="client_secret" class="form-control" required>
     </div>
+    <div class="col-md-8">
+      <label class="form-label">Icon URL</label>
+      <input type="url" name="icon_url" class="form-control">
+    </div>
     <div class="col-md-2">
       <label class="form-label d-block">Enabled</label>
       <input type="checkbox" name="enabled">
     </div>
     <div class="col-md-2 d-flex align-items-end">
-      <button type="submit" class="btn btn-success">Add</button>
+      <button type="submit" class="btn btn-success w-100">Add</button>
     </div>
   </div>
 </form>
+
 <?php include 'includes/footer.php'; ?>
 <?php
 $content = ob_get_clean();
