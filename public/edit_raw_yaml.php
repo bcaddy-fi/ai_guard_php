@@ -35,8 +35,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         $parsed = Yaml::parse($rawYaml);
-        $topKey = $parsed[$type] ?? null;
-        if (!$topKey) {
+
+        if (!is_array($parsed)) {
+            throw new Exception("YAML is not structured as a key-value map.");
+        }
+
+        if (!isset($parsed[$type]) || !is_array($parsed[$type])) {
             throw new Exception("YAML must contain a top-level '$type' key.");
         }
 
@@ -76,19 +80,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             array_keys($diff), $diff
         ));
 
-log_yaml_edit($pdo, [
-    'file_type'       => $type,
-    'filename'        => $basename,
-    'email'           => $_SESSION['email'] ?? 'unknown',
-    'username'        => $_SESSION['username'] ?? 'unknown', 
-    'version_before'  => $currentVersion,
-    'version_after'   => $newVersion,
-    'diff_summary'    => $summary,
-    'diff_json'       => $diff,
-    'action_taken'    => 'edit',
-    'test_run_ids'    => '',
-    'notes'           => 'Edited via raw YAML editor'
-]);
+        log_yaml_edit($pdo, [
+            'file_type'       => $type,
+            'filename'        => $basename,
+            'email'           => $_SESSION['email'] ?? 'unknown',
+            'username'        => $_SESSION['username'] ?? 'unknown',
+            'version_before'  => $currentVersion,
+            'version_after'   => $newVersion,
+            'diff_summary'    => $summary,
+            'diff_json'       => $diff,
+            'action_taken'    => 'edit',
+            'test_run_ids'    => '',
+            'notes'           => 'Edited via raw YAML editor'
+        ]);
 
         $success = "YAML saved successfully. Version updated to $newVersion.";
         $yamlContent = $finalYaml;
@@ -116,17 +120,18 @@ include 'includes/layout.php';
             <textarea name="yaml" class="form-control" rows="20" required><?= htmlspecialchars($yamlContent) ?></textarea>
         </div>
         <button type="submit" class="btn btn-primary">Save YAML</button>
-<?php
-$pageMap = [
-    'agent' => 'manage_rules.php',
-    'persona' => 'manage_personas.php',
-    'guardrails' => 'manage_guardrails.php',
-    'model' => 'manage_models.php',
-    'models' => 'manage_models.php',
-];
-$backPage = $pageMap[$type] ?? 'index.php';
-?>
-<a href="<?= $backPage ?>" class="btn btn-secondary">Back</a>    </form>
+        <?php
+        $pageMap = [
+            'agent' => 'manage_rules.php',
+            'persona' => 'manage_personas.php',
+            'guardrails' => 'manage_guardrails.php',
+            'model' => 'manage_models.php',
+            'models' => 'manage_models.php',
+        ];
+        $backPage = $pageMap[$type] ?? 'index.php';
+        ?>
+        <a href="<?= $backPage ?>" class="btn btn-secondary">Back</a>
+    </form>
 </div>
 
 <?php include 'includes/footer.php'; ?>

@@ -26,28 +26,32 @@ if (!$user || !password_verify($password, $user['password'])) {
     exit;
 }
 
-// ? Set session correctly
+// ? Set all relevant session values
+$_SESSION['user_id']    = $user['id'];
+$_SESSION['username']   = $user['username'];
+$_SESSION['email']      = $user['email'];
+$_SESSION['role']       = $user['role'] ?? 'read';
+$_SESSION['last_login'] = $user['last_login'] ?? null;
+
+// Optional: store user object if needed elsewhere
 $_SESSION['user'] = [
-    'id'       => $user['id'] ?? null,
+    'id'       => $user['id'],
     'username' => $user['username'],
     'email'    => $user['email'],
     'role'     => $user['role'] ?? 'read'
 ];
 
-// Optional legacy values if still needed
-$_SESSION['user_id'] = $user['username'];
-$_SESSION['role'] = $user['role'] ?? 'read';
+// ? Update last login timestamp
+$stmt = $pdo->prepare("UPDATE users SET last_login = NOW() WHERE id = ?");
+$stmt->execute([$user['id']]);
 
-// Audit log (now using correct email)
-$stmt = $pdo->prepare("UPDATE users SET last_login = NOW() WHERE username = ?");
-$stmt->execute([$user['username']]);
-
+// ? Audit log entry
 $log = $pdo->prepare("INSERT INTO audit_log (username, action, target_table, target_id, details) VALUES (?, ?, ?, ?, ?)");
 $log->execute([
     $user['email'],
     'Login',
     'users',
-    $user['id'] ?? null,
+    $user['id'],
     'Standard login from ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown')
 ]);
 
