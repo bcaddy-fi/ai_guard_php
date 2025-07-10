@@ -1,28 +1,25 @@
 <?php
 require __DIR__ . '/../app/controllers/auth.php';
 require_login();
+require_once __DIR__ . '/../app/helpers/yaml_dirs.php';
 require __DIR__ . '/../vendor/autoload.php';
 
 use Symfony\Component\Yaml\Yaml;
 
-ob_start();
-$directory = __DIR__ . '/../data/agent_rules/';
-$files = glob($directory . '*.yaml');
-$rules = [];
+$type = 'agent';
+$dir = get_yaml_directory($type);
 
-foreach ($files as $filepath) {
-    $filename = basename($filepath);
+$files = is_dir($dir)
+    ? array_filter(scandir($dir), fn($f) => str_ends_with($f, '.yaml') || str_ends_with($f, '.yml'))
+    : [];
+
+$rules = [];
+foreach ($files as $filename) {
+    $filepath = $dir . $filename;
     $content = file_get_contents($filepath);
 
-    // Strip leading comment lines like "# version: x.y.z"
-    $lines = explode("\n", $content);
-    while (!empty($lines) && str_starts_with(trim($lines[0]), '#')) {
-        array_shift($lines);
-    }
-    $strippedYaml = implode("\n", $lines);
-
     try {
-        $parsed = Yaml::parse($strippedYaml);
+        $parsed = Yaml::parse($content);
         $agent = $parsed['agent'] ?? [];
 
         $rules[] = [
@@ -45,14 +42,12 @@ foreach ($files as $filepath) {
     }
 }
 
-// ?? Sort by filename
-usort($rules, function ($a, $b) {
-    return strcmp($a['filename'], $b['filename']);
-});
+// Sort by filename
+usort($rules, fn($a, $b) => strcmp($a['filename'], $b['filename']));
 
-$content = ob_get_clean();
-include 'includes/layout.php';
 
+
+ob_start();
 ?>
 
 <div class="container mt-4">
@@ -86,15 +81,31 @@ include 'includes/layout.php';
                         <td><?= htmlspecialchars($rule['tone']) ?></td>
                         <td><?= htmlspecialchars($rule['version']) ?></td>
                         <td><?= htmlspecialchars($rule['mtime']) ?></td>
-<td>
-    <a href="edit_raw_yaml.php?file=<?= urlencode($rule['filename']) ?>" class="btn btn-sm btn-warning">Raw Edit</a>
-    <a href="test_agent.php?file=<?= urlencode($rule['filename']) ?>" class="btn btn-sm btn-success">Test</a>
-    <a href="download_rule.php?name=<?= urlencode($rule['filename']) ?>" class="btn btn-sm btn-secondary">Download</a>
-    <form action="delete_rule.php" method="post" style="display:inline-block;" onsubmit="return confirm('Are you sure you want to delete this rule file?');">
-        <input type="hidden" name="filename" value="<?= htmlspecialchars($rule['filename']) ?>">
-        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-    </form>
-</td>
+                        <td>
+                            <a href="edit_raw_yaml.php?file=<?= urlencode($rule['filename']) ?>" class="btn btn-sm btn-warning">Raw Edit</a>
+                            <a href="test_agent.php?type=agent&name=<?= urlencode($rule['filename']) ?>" class="btn btn-sm btn-success">Test</a>
+                            <a href="download_rule.php?type=agent&name=<?= urlencode($rule['filename']) ?>" class="btn btn-sm btn-secondary">Download</a>
+                            <a href="yaml_history.php?file=<?= urlencode($rule['filename']) ?>&type=agent" class="btn btn-sm btn-warning">History</a>
+                         
+<form action="delete_rule.php" method="post" style="display:inline-block;" onsubmit="return confirmDelete('<?= htmlspecialchars($rule['filename']) ?>')">
+    <input type="hidden" name="filename" value="<?= htmlspecialchars($rule['filename']) ?>">
+    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+</form>
+<script>
+function confirmDelete(filename) {
+  const input = prompt(`To confirm deletion of "${filename}", type: delete`);
+  if (input === 'delete') {
+    return true;
+  } else if (input === null) {
+    return false;
+  } else {
+    alert('Deletion canceled. You must type "delete" to proceed.');
+    return false;
+  }
+}
+</script>
+
+                        </td>
                     </tr>
                 <?php endforeach ?>
             </tbody>
@@ -102,4 +113,7 @@ include 'includes/layout.php';
     <?php endif; ?>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php
+$content = ob_get_clean();
+include 'includes/layout.php';
+?>

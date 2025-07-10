@@ -1,143 +1,110 @@
 <?php
 require __DIR__ . '/../app/controllers/auth.php';
 require_login();
-require __DIR__ . '/../app/controllers/db.php';
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../app/helpers/yaml_dirs.php';
+require __DIR__ . '/../vendor/autoload.php';
 
 use Symfony\Component\Yaml\Yaml;
-use Symfony\Component\Yaml\Exception\ParseException;
 
-$directory = __DIR__ . '/../data/models/';
-ini_set('display_errors', 1);
-ini_set('error_reporting', E_ALL);
+$type = 'model';
+$dir = get_yaml_directory($type);
 
-$success = '';
-$error = '';
-$filename = '';
-$content = '';
+$files = is_dir($dir)
+    ? array_filter(scandir($dir), fn($f) => str_ends_with($f, '.yaml') || str_ends_with($f, '.yml'))
+    : [];
 
-// Load file content
-if (isset($_GET['file'])) {
-    $filename = basename($_GET['file']);
-    $path = $directory . $filename;
-    if (file_exists($path)) {
-        $content = file_get_contents($path);
-    } else {
-        $error = "File not found.";
+$rules = [];
+foreach ($files as $filename) {
+    $filepath = $dir . $filename;
+    $content = file_get_contents($filepath);
+
+    try {
+        $parsed = Yaml::parse($content);
+        $model = $parsed['model'] ?? [];
+
+        $rules[] = [
+            'filename'    => $filename,
+            'name'        => $model['name'] ?? '(Unnamed)',
+            'description' => $model['description'] ?? '',
+            'tone'        => $model['tone'] ?? '',
+            'version'     => $model['version'] ?? '0.0.0',
+            'mtime'       => date('Y-m-d H:i:s', filemtime($filepath)),
+        ];
+    } catch (Exception $e) {
+        $rules[] = [
+            'filename'    => $filename,
+            'name'        => '(Parse error)',
+            'description' => $e->getMessage(),
+            'tone'        => '',
+            'version'     => 'n/a',
+            'mtime'       => '',
+        ];
     }
 }
 
-// Handle save
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['filename'], $_POST['content'])) {
-    $filename = basename($_POST['filename']);
-    $path = $directory . $filename;
+// Sort by filename
+usort($rules, fn($a, $b) => strcmp($a['filename'], $b['filename']));
 
-    if (preg_match('/\.ya?ml$/', $filename)) {
-        $rawContent = $_POST['content'];
-        $lines = explode("\n", $rawContent);
-
-        // Auto version update
-        if (preg_match('/^#?\s*version:\s*(\d+)\.(\d+)\.(\d+)/i', $lines[0], $matches)) {
-            $major = (int)$matches[1];
-            $minor = (int)$matches[2];
-            $patch = (int)$matches[3] + 1;
-            $lines[0] = "# version: {$major}.{$minor}.{$patch}";
-        } else {
-            array_unshift($lines, "# version: 1.0.0");
-        }
-
-        $updatedContent = implode("\n", $lines);
-
-        // Validate YAML before saving
-        try {
-            Yaml::parse($updatedContent);
-            file_put_contents($path, $updatedContent);
-            $success = "Saved successfully with versioning.";
-
-            // Audit log
-            $username = $_SESSION['user_id'] ?? 'unknown';
-            $audit = $pdo->prepare("INSERT INTO file_audit_log (username, filename, file_content) VALUES (?, ?, ?)");
-            $audit->execute([$username, $filename, $updatedContent]);
-
-            $content = $updatedContent;
-        } catch (ParseException $e) {
-            $error = "YAML format error on line " . $e->getParsedLine() . ": " . htmlspecialchars($e->getMessage());
-            $content = $_POST['content']; // restore user input
-        }
-    } else {
-        $error = "Invalid filename. Must be .yaml or .yml";
-    }
-}
-
-// List files
-$files = glob($directory . '*.yaml');
 ob_start();
 ?>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/lib/codemirror.css">
-<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/lib/codemirror.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/mode/yaml/yaml.js"></script>
-<style>
-textarea {
-  font-family: monospace;
-  font-size: 0.9rem;
-  height: 800px;
-}
-</style>
 
-<div class="row">
-  <div class="col-md-4">
-    <div class="card p-3 mb-4">
-      <h5>Available Models</h5>
-      <ul class="list-group">
-        <?php foreach ($files as $file): ?>
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <a href="?file=<?= urlencode(basename($file)) ?>"><?= htmlspecialchars(basename($file)) ?></a>
-          </li>
-        <?php endforeach; ?>
-      </ul>
+<div class="container mt-4">
+    <h1>Manage Models (File-based)</h1>
+
+    <div class="mb-3">
+        <a href="edit_raw_yaml.php?new=1&type=model" class="btn btn-success">Create New Model</a>
     </div>
-  </div>
 
-  <div class="col-md-8">
-    <div class="card p-4">
-      <h5>Edit Model</h5>
-      <?php if ($error): ?>
-        <div class="alert alert-danger"><?= $error ?></div>
-      <?php endif; ?>
-      <?php if ($success): ?>
-        <div class="alert alert-success"><?= $success ?></div>
-      <?php endif; ?>
-      <form method="post">
-        <div class="mb-3">
-          <label for="filename" class="form-label">File Name</label>
-          <input type="text" class="form-control" name="filename" id="filename" value="<?= htmlspecialchars($filename) ?>" required>
-        </div>
-
-        <div class="mb-3">
-          <label for="content" class="form-label">YAML Content</label>
-          <textarea id="yamlEditor" name="content"><?= htmlspecialchars($content) ?></textarea>
-        </div>
-
-        <div class="d-grid">
-          <button type="submit" class="btn btn-primary">Save</button>
-        </div>
-      </form>
-    </div>
-  </div>
+    <?php if (empty($rules)): ?>
+        <p>No YAML models found in <code>data/models/</code>.</p>
+    <?php else: ?>
+        <table class="table table-bordered table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th>Filename</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Tone</th>
+                    <th>Version</th>
+                    <th>Modified</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($rules as $rule): ?>
+                    <tr>
+                        <td><?= htmlspecialchars($rule['filename']) ?></td>
+                        <td><?= htmlspecialchars($rule['name']) ?></td>
+                        <td><?= htmlspecialchars($rule['description']) ?></td>
+                        <td><?= htmlspecialchars($rule['tone']) ?></td>
+                        <td><?= htmlspecialchars($rule['version']) ?></td>
+                        <td><?= htmlspecialchars($rule['mtime']) ?></td>
+                        <td>
+                            <a href="edit_raw_yaml.php?file=<?= urlencode($rule['filename']) ?>&type=model" class="btn btn-sm btn-warning">Raw Edit</a>
+                            <a href="test_model.php?file=<?= urlencode($rule['filename']) ?>" class="btn btn-sm btn-success">Test</a>
+                            <a href="download_model.php?type=model&name=<?= urlencode($rule['filename']) ?>" class="btn btn-sm btn-secondary">Download</a>
+                            <a href="delete_yaml.php?file=<?= urlencode($rule['filename']) ?>&type=model" class="btn btn-sm btn-danger" onclick="return confirmDelete('<?= htmlspecialchars($file) ?>')">Delete</a>
+                            <a href="yaml_history.php?file=<?= urlencode($rule['filename']) ?>&type=model" class="btn btn-sm btn-warning">History</a>                        </td>
+                    </tr>
+                <?php endforeach ?>
+            </tbody>
+        </table>
+    <?php endif; ?>
 </div>
-
 <script>
-  const editor = CodeMirror.fromTextArea(document.getElementById('yamlEditor'), {
-    lineNumbers: true,
-    mode: "yaml",
-    theme: "default",
-    lineWrapping: true,
-    matchBrackets: true
-  });
-  editor.setSize(null, "800px");
+  function confirmDelete(filename) {
+    const input = prompt(`To confirm deletion of "<?= urlencode($rule['filename']) ?>", type: delete`);
+    if (input === 'delete') {
+      return true;
+    } else if (input === null) {
+      return false;
+    } else {
+      alert('Deletion canceled. You must type "delete" to proceed.');
+      return false;
+    }
+  }
 </script>
 
-<?php include 'includes/footer.php'; ?>
 <?php
 $content = ob_get_clean();
 include 'includes/layout.php';
